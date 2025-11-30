@@ -3,621 +3,626 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ultra-Real Solar System Sandbox</title>
+    <title>Galactic Defender: Save Earth!</title>
     <style>
-        body { margin: 0; overflow: hidden; background-color: #000; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: white; }
-        #canvas-container { width: 100vw; height: 100vh; }
+        body { margin: 0; overflow: hidden; background-color: #000; font-family: 'Comic Sans MS', 'Chalkboard SE', sans-serif; color: white; user-select: none; }
+        #canvas-container { width: 100vw; height: 100vh; cursor: crosshair; }
         
-        /* UI Control Panel */
-        #controls {
+        /* Game HUD */
+        #hud {
             position: absolute;
-            top: 10px;
-            right: 10px;
-            width: 280px;
-            background: rgba(0, 0, 0, 0.85);
-            padding: 15px;
-            border-radius: 10px;
-            border: 1px solid #444;
-            max-height: 90vh;
-            overflow-y: auto;
-            box-shadow: 0 0 20px rgba(0, 150, 255, 0.2);
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            pointer-events: none;
             z-index: 10;
         }
 
-        h2 { margin-top: 0; color: #4db8ff; font-size: 16px; text-transform: uppercase; letter-spacing: 1px; }
-        h3 { font-size: 13px; color: #ccc; border-bottom: 1px solid #444; padding-bottom: 5px; margin-top: 15px; }
-        
-        .control-group { margin-bottom: 10px; }
-        label { display: block; font-size: 11px; margin-bottom: 3px; color: #aaa; }
-        
-        input[type="range"] { width: 100%; cursor: pointer; }
-        select, button { 
-            width: 100%; 
-            padding: 6px; 
-            margin-bottom: 5px; 
-            background: #222; 
-            color: white; 
-            border: 1px solid #555; 
-            border-radius: 4px; 
-            cursor: pointer;
-            font-size: 12px;
-        }
-        button:hover { background: #444; }
-        button.danger { background: #600; border-color: #800; }
-        button.danger:hover { background: #900; }
-        
-        #feedback {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 24px;
+        #score-board {
+            font-size: 32px;
             font-weight: bold;
-            color: #fff;
-            text-shadow: 0 0 10px red;
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.5s;
-            z-index: 20;
+            color: #ffff00;
+            text-shadow: 2px 2px 0 #000;
+        }
+
+        #health-bar-container {
+            width: 300px;
+            height: 20px;
+            background: #444;
+            border: 2px solid #fff;
+            border-radius: 10px;
+            margin-top: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        #health-bar {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, #ff3333, #33ff33);
+            transition: width 0.2s;
+        }
+
+        #health-text {
+            position: absolute;
+            width: 100%;
+            text-align: center;
+            top: 0;
+            line-height: 20px;
+            font-size: 14px;
+            color: black;
+            font-weight: bold;
+        }
+
+        /* Powerup Controls */
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 200px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 15px;
+            border: 2px solid #4db8ff;
             text-align: center;
         }
 
-        #instructions {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            color: rgba(255,255,255,0.6);
-            font-size: 12px;
-            pointer-events: none;
-            z-index: 5;
-            background: rgba(0,0,0,0.5);
+        .btn {
+            background: linear-gradient(to bottom, #4db8ff, #0055ff);
+            border: none;
+            border-radius: 8px;
+            color: white;
             padding: 10px;
-            border-radius: 5px;
+            width: 100%;
+            margin-bottom: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px #003399;
+            font-family: inherit;
+        }
+        .btn:active { box-shadow: 0 1px #003399; transform: translateY(3px); }
+        .btn.danger { background: linear-gradient(to bottom, #ff4d4d, #cc0000); box-shadow: 0 4px #880000; }
+        .btn.danger:active { box-shadow: 0 1px #880000; }
+
+        /* Game Over Screen */
+        #game-over {
+            display: none;
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 50;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
         }
         
-        #loading {
+        h1 { font-size: 60px; color: #ff3333; margin: 0; text-shadow: 0 0 20px red; }
+        p { font-size: 24px; color: #ddd; }
+        
+        #start-btn {
+            font-size: 30px;
+            padding: 15px 40px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            margin-top: 20px;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+
+        /* Floating Damage Text */
+        .floater {
             position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
+            color: yellow;
+            font-weight: bold;
             font-size: 20px;
-            color: #4db8ff;
-            z-index: 100;
-            background: black;
-            padding: 20px;
-            border: 1px solid #444;
+            pointer-events: none;
+            animation: floatUp 1s forwards;
+            text-shadow: 2px 2px 0 #000;
+        }
+
+        @keyframes floatUp { to { transform: translateY(-50px); opacity: 0; } }
+
+        #message-box {
+            position: absolute;
+            top: 20%;
+            width: 100%;
+            text-align: center;
+            font-size: 40px;
+            font-weight: bold;
+            color: #ffaa00;
+            text-shadow: 0 0 10px black;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s;
         }
     </style>
 </head>
 <body>
 
-<div id="loading">Loading Textures & Assets...</div>
-<div id="canvas-container"></div>
+<div id="hud">
+    <div id="score-board">SCORE: <span id="score">0</span></div>
+    <div id="health-bar-container">
+        <div id="health-bar"></div>
+        <div id="health-text">Earth Health: 100%</div>
+    </div>
+</div>
+
+<div id="message-box"></div>
 
 <div id="controls">
-    <h2>Mission Control 🚀</h2>
-    
-    <h3>☀️ Sun Control</h3>
-    <div class="control-group">
-        <label>Sun Intensity</label>
-        <input type="range" id="sunIntensity" min="0.5" max="3" step="0.1" value="1.5">
+    <h3>God Powers ⚡</h3>
+    <button class="btn" onclick="activateShield()">🛡️ Gravity Shield</button>
+    <button class="btn danger" onclick="sunPulse()">☀️ Sun Nuke (Clear All)</button>
+    <div style="font-size: 12px; color: #aaa; margin-top: 5px;">
+        Click flying objects to destroy them!
     </div>
-    <div class="control-group">
-        <label>Sun Mass (Gravity Well)</label>
-        <input type="range" id="sunMass" min="500" max="5000" step="100" value="1000">
-    </div>
-
-    <h3>🪐 Planet Ops</h3>
-    <div class="control-group">
-        <label>Target Planet</label>
-        <select id="planetSelector"></select>
-    </div>
-    <div class="control-group">
-        <label>Orbital Boost</label>
-        <div style="display: flex; gap: 5px;">
-            <button onclick="pushPlanet(1.1)">Boost (+10%)</button>
-            <button onclick="pushPlanet(0.9)">Brake (-10%)</button>
-        </div>
-    </div>
-    <div class="control-group">
-        <label>Modify Mass</label>
-        <input type="range" id="planetMass" min="0.1" max="100" step="0.1" value="1">
-    </div>
-
-    <h3>⚠️ Chaos Mode</h3>
-    <div class="control-group">
-        <label>Swap 1:</label>
-        <select id="swap1"></select>
-        <label>Swap 2:</label>
-        <select id="swap2"></select>
-        <button class="danger" onclick="swapPlanets()">SWAP ORBITS</button>
-    </div>
-
-    <button onclick="resetSystem()" style="margin-top: 20px; background: #2a2;">Reset System</button>
 </div>
 
-<div id="instructions">
-    <b>Controls:</b><br>
-    Left Click: Rotate Camera<br>
-    Right Click: Pan<br>
-    Scroll: Zoom<br>
-    <span style="color: #4db8ff">Camera Auto-Tracks the Sun</span>
+<div id="game-over">
+    <h1>GAME OVER</h1>
+    <p id="death-reason">Earth was destroyed!</p>
+    <p>Final Score: <span id="final-score">0</span></p>
+    <button id="start-btn" onclick="startGame()">Try Again</button>
 </div>
 
-<div id="feedback"></div>
+<div id="canvas-container"></div>
 
 <!-- Three.js Library -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 
 <script>
-    // --- Physics Configuration ---
-    const G = 0.5; 
-    const TIME_STEP = 0.5; 
+    // --- Configuration ---
+    const G = 0.5;
+    const TIME_STEP = 0.5;
     
-    // Texture URLs (Using Wikimedia Commons for reliability)
+    // Texture URLs (Realistic)
     const textures = {
         sun: 'https://upload.wikimedia.org/wikipedia/commons/9/99/Map_of_the_full_sun.jpg',
-        mercury: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Solarsystemscope_texture_2k_mercury.jpg/1024px-Solarsystemscope_texture_2k_mercury.jpg',
-        venus: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/0e/Solarsystemscope_texture_2k_venus_atmosphere.jpg/1024px-Solarsystemscope_texture_2k_venus_atmosphere.jpg',
         earth: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Solarsystemscope_texture_2k_earth_daymap.jpg/1024px-Solarsystemscope_texture_2k_earth_daymap.jpg',
-        mars: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/85/Solarsystemscope_texture_2k_mars.jpg/1024px-Solarsystemscope_texture_2k_mars.jpg',
-        jupiter: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Solarsystemscope_texture_2k_jupiter.jpg/1024px-Solarsystemscope_texture_2k_jupiter.jpg',
-        saturn: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/23/Solarsystemscope_texture_2k_saturn.jpg/1024px-Solarsystemscope_texture_2k_saturn.jpg',
-        uranus: 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/95/Solarsystemscope_texture_2k_uranus.jpg/1024px-Solarsystemscope_texture_2k_uranus.jpg',
-        neptune: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1e/Solarsystemscope_texture_2k_neptune.jpg/1024px-Solarsystemscope_texture_2k_neptune.jpg',
-        moon: 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/74/Moon_texture_-_AS11-44-6667.jpg/1024px-Moon_texture_-_AS11-44-6667.jpg'
+        moon: 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/74/Moon_texture_-_AS11-44-6667.jpg/1024px-Moon_texture_-_AS11-44-6667.jpg',
+        jupiter: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Solarsystemscope_texture_2k_jupiter.jpg/1024px-Solarsystemscope_texture_2k_jupiter.jpg'
     };
 
-    const initialData = [
-        { name: "Mercury", tex: textures.mercury, size: 0.8, dist: 35, mass: 1 },
-        { name: "Venus",   tex: textures.venus, size: 1.5, dist: 50, mass: 4 },
-        { name: "Earth",   tex: textures.earth, size: 1.6, dist: 70, mass: 5, moon: true },
-        { name: "Mars",    tex: textures.mars, size: 1.0, dist: 90, mass: 2 },
-        { name: "Jupiter", tex: textures.jupiter, size: 5.5, dist: 140, mass: 80 },
-        { name: "Saturn",  tex: textures.saturn, size: 4.8, dist: 190, mass: 60, ring: true },
-        { name: "Uranus",  tex: textures.uranus, size: 3.0, dist: 230, mass: 30 },
-        { name: "Neptune", tex: textures.neptune, size: 2.9, dist: 270, mass: 35 }
+    // Funny Enemy Types
+    const enemyTypes = [
+        { name: "Space Pizza", emoji: "🍕", mass: 2, size: 3, speed: 0.8, damage: 10 },
+        { name: "Alien UFO", emoji: "🛸", mass: 3, size: 4, speed: 1.2, damage: 15 },
+        { name: "Poop Meteor", emoji: "💩", mass: 5, size: 5, speed: 0.5, damage: 20 },
+        { name: "Dino", emoji: "🦖", mass: 4, size: 6, speed: 0.9, damage: 25 },
+        { name: "Rubber Duck", emoji: "🦆", mass: 10, size: 8, speed: 0.3, damage: 40 }, // Heavy!
+        { name: "Donut", emoji: "🍩", mass: 2, size: 4, speed: 1.0, damage: 10 }
     ];
 
     let scene, camera, renderer, controls;
-    let sun, sunLight, sunGlow;
+    let sun, earth, sunLight;
     let bodies = []; 
+    let enemies = [];
+    let particles = [];
     let textureLoader;
+    
+    // Game State
+    let score = 0;
+    let earthHealth = 100;
+    let isPlaying = false;
+    let spawnRate = 200; // Frames
+    let frameCount = 0;
+    let animationId;
 
     window.onload = function() {
-        try {
-            init();
-            document.getElementById('loading').style.display = 'none';
-        } catch (e) {
-            console.error(e);
-            document.getElementById('loading').innerText = "Error: " + e.message;
-        }
+        init();
+        document.getElementById('game-over').style.display = 'flex';
+        document.getElementById('game-over').querySelector('h1').innerText = "GALACTIC DEFENDER";
+        document.getElementById('death-reason').innerText = "Protect Earth from Space Junk!";
+        document.getElementById('start-btn').innerText = "START GAME";
     };
 
     function init() {
-        // Scene Setup
         scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x000000);
+        scene.background = new THREE.Color(0x050505);
         
-        // Fog for depth (optional, very subtle)
-        scene.fog = new THREE.FogExp2(0x000000, 0.0002);
-
-        // Camera
         camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 5000);
-        camera.position.set(0, 100, 350);
+        camera.position.set(0, 150, 300);
 
-        // Renderer with Shadows
-        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+        renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(window.devicePixelRatio);
-        renderer.shadowMap.enabled = true;
-        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         document.getElementById('canvas-container').appendChild(renderer.domElement);
 
-        // Controls
         controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
-        controls.dampingFactor = 0.05;
-        controls.maxDistance = 1500;
-        controls.minDistance = 20;
-
-        textureLoader = new THREE.TextureLoader();
         
-        // Cross Origin allow
+        textureLoader = new THREE.TextureLoader();
         textureLoader.crossOrigin = 'anonymous';
 
+        // Starfield
         createStarfield();
-        createSystem();
-        populateUI();
 
+        // Lighting
+        sunLight = new THREE.PointLight(0xffffff, 1.5, 2000);
+        scene.add(sunLight);
+        scene.add(new THREE.AmbientLight(0x404040));
+
+        // Interaction
+        renderer.domElement.addEventListener('pointerdown', onMouseDown, false);
         window.addEventListener('resize', onWindowResize, false);
-        renderer.domElement.addEventListener('pointerdown', onDocumentMouseDown, false);
-
+        
+        // Don't start loop yet, wait for Start Button
         animate();
     }
 
-    function createStarfield() {
-        const starGeo = new THREE.BufferGeometry();
-        const starCount = 8000;
-        const posArray = new Float32Array(starCount * 3);
-        const colorArray = new Float32Array(starCount * 3); // For varied star colors
-        
-        for(let i=0; i<starCount * 3; i+=3) {
-            posArray[i] = (Math.random() - 0.5) * 4000;
-            posArray[i+1] = (Math.random() - 0.5) * 4000;
-            posArray[i+2] = (Math.random() - 0.5) * 4000;
+    function startGame() {
+        // Reset Game Variables
+        score = 0;
+        earthHealth = 100;
+        isPlaying = true;
+        frameCount = 0;
+        spawnRate = 200;
+        updateHUD();
 
-            // Random slight tints for stars (bluish, reddish, white)
-            const starType = Math.random();
-            let r=1, g=1, b=1;
-            if(starType > 0.9) { r=1; g=0.8; b=0.8; } // Reddish
-            else if(starType > 0.7) { r=0.8; g=0.8; b=1; } // Bluish
-            
-            colorArray[i] = r;
-            colorArray[i+1] = g;
-            colorArray[i+2] = b;
-        }
-        
-        starGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
-        starGeo.setAttribute('color', new THREE.BufferAttribute(colorArray, 3));
-        
-        const starMat = new THREE.PointsMaterial({
-            size: 1.5, 
-            vertexColors: true, 
-            transparent: true, 
-            opacity: 0.8,
-            sizeAttenuation: true
+        // Clear Scene Entities
+        bodies.forEach(b => {
+            scene.remove(b.mesh);
+            if(b.trail) scene.remove(b.trail);
         });
-        const stars = new THREE.Points(starGeo, starMat);
-        scene.add(stars);
+        enemies.forEach(e => scene.remove(e.mesh));
+        bodies = [];
+        enemies = [];
+
+        // Hide Menu
+        document.getElementById('game-over').style.display = 'none';
+
+        // Recreate Solar System
+        createSystem();
     }
 
     function createSystem() {
-        if (sun) scene.remove(sun);
-        if (sunGlow) scene.remove(sunGlow);
-        bodies.forEach(b => {
-            scene.remove(b.mesh);
-            scene.remove(b.trail);
-            if(b.ringMesh) scene.remove(b.ringMesh);
-            if(b.moonMesh) scene.remove(b.moonMesh);
-        });
-        bodies = [];
-
-        // --- THE SUN ---
-        // Emissive material for the sun so it glows even in dark
-        const sunGeo = new THREE.SphereGeometry(12, 64, 64);
-        const sunMat = new THREE.MeshBasicMaterial({ 
-            map: textureLoader.load(textures.sun),
-            color: 0xffffff
-        });
+        // 1. Sun
+        const sunGeo = new THREE.SphereGeometry(15, 32, 32);
+        const sunMat = new THREE.MeshBasicMaterial({ map: textureLoader.load(textures.sun), color: 0xffff00 });
         sun = new THREE.Mesh(sunGeo, sunMat);
         scene.add(sun);
-
-        // Sun Glow (Sprite)
-        const spriteMat = new THREE.SpriteMaterial({ 
-            map: createGlowTexture(), 
-            color: 0xffaa00, 
-            transparent: true, 
-            blending: THREE.AdditiveBlending 
+        
+        bodies.push({
+            name: "Sun", mass: 1000, mesh: sun,
+            pos: new THREE.Vector3(0,0,0), vel: new THREE.Vector3(0,0,0), type: 'star'
         });
-        sunGlow = new THREE.Sprite(spriteMat);
-        sunGlow.scale.set(70, 70, 1.0);
-        sun.add(sunGlow); // Attach to sun so it moves with it
 
-        // Sun Physics
-        const sunBody = {
-            name: "Sun",
-            mass: 1000,
-            mesh: sun,
-            pos: new THREE.Vector3(0, 0, 0),
-            vel: new THREE.Vector3(0, 0, 0)
+        // 2. Earth
+        const earthGeo = new THREE.SphereGeometry(4, 32, 32);
+        const earthMat = new THREE.MeshStandardMaterial({ map: textureLoader.load(textures.earth) });
+        const earthMesh = new THREE.Mesh(earthGeo, earthMat);
+        
+        // Position Earth
+        const dist = 100;
+        earthMesh.position.set(dist, 0, 0);
+        scene.add(earthMesh);
+
+        // Orbital Velocity calculation
+        const speed = Math.sqrt((G * 1000) / dist);
+
+        earth = {
+            name: "Earth", mass: 10, mesh: earthMesh,
+            pos: new THREE.Vector3(dist, 0, 0),
+            vel: new THREE.Vector3(0, 0, speed), // Perpendicular velocity
+            type: 'planet'
         };
-        bodies.push(sunBody);
+        bodies.push(earth);
 
-        // --- LIGHTING ---
-        if(sunLight) scene.remove(sunLight);
+        // 3. Jupiter (Bodyguard)
+        const jupGeo = new THREE.SphereGeometry(10, 32, 32);
+        const jupMat = new THREE.MeshStandardMaterial({ map: textureLoader.load(textures.jupiter) });
+        const jupMesh = new THREE.Mesh(jupGeo, jupMat);
+        const jDist = 180;
+        jupMesh.position.set(-jDist, 0, 0);
+        scene.add(jupMesh);
         
-        // Point Light from Sun (Casts Shadows)
-        sunLight = new THREE.PointLight(0xffffff, 1.5, 2000);
-        sunLight.castShadow = true;
-        sunLight.shadow.mapSize.width = 2048; // High quality shadow
-        sunLight.shadow.mapSize.height = 2048;
-        sunLight.shadow.bias = -0.0001;
-        sun.add(sunLight); // Attach light to sun mesh
-        
-        // Ambient Light (so shadows aren't pitch black)
-        const ambient = new THREE.AmbientLight(0x333333); 
-        scene.add(ambient);
-
-        // --- PLANETS ---
-        initialData.forEach(data => {
-            createPlanet(data, sunBody);
+        const jSpeed = Math.sqrt((G * 1000) / jDist);
+        bodies.push({
+            name: "Jupiter", mass: 80, mesh: jupMesh,
+            pos: new THREE.Vector3(-jDist, 0, 0),
+            vel: new THREE.Vector3(0, 0, -jSpeed),
+            type: 'planet'
         });
     }
 
-    function createGlowTexture() {
+    // --- Emoji Sprite Creator ---
+    function createEmojiTexture(emoji, size=64) {
         const canvas = document.createElement('canvas');
-        canvas.width = 128;
-        canvas.height = 128;
-        const context = canvas.getContext('2d');
-        const gradient = context.createRadialGradient(64, 64, 0, 64, 64, 64);
-        gradient.addColorStop(0, 'rgba(255, 200, 100, 1)');
-        gradient.addColorStop(0.2, 'rgba(255, 150, 50, 0.8)');
-        gradient.addColorStop(0.5, 'rgba(255, 100, 0, 0.3)');
-        gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
-        context.fillStyle = gradient;
-        context.fillRect(0,0,128,128);
-        const tex = new THREE.CanvasTexture(canvas);
-        return tex;
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        ctx.font = `${size-10}px serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(emoji, size/2, size/2 + 5);
+        return new THREE.CanvasTexture(canvas);
     }
 
-    function createPlanet(data, sunBody) {
-        // High Segment Geometry for roundness
-        const geo = new THREE.SphereGeometry(data.size, 64, 64);
+    function spawnEnemy() {
+        const type = enemyTypes[Math.floor(Math.random() * enemyTypes.length)];
         
-        const texMap = textureLoader.load(data.tex, undefined, undefined, (err) => {
-            // Fallback if image fails
-            console.warn("Texture error", err);
-            mat.color.setHex(0x888888); 
-            mat.map = null;
-            mat.needsUpdate = true;
-        });
+        // Sprite Material
+        const spriteMat = new THREE.SpriteMaterial({ map: createEmojiTexture(type.emoji) });
+        const sprite = new THREE.Sprite(spriteMat);
+        sprite.scale.set(type.size * 3, type.size * 3, 1); // Scale up for visibility
 
-        const mat = new THREE.MeshStandardMaterial({ 
-            map: texMap,
-            roughness: 0.8,
-            metalness: 0.1
-        });
-        const mesh = new THREE.Mesh(geo, mat);
-        mesh.castShadow = true;
-        mesh.receiveShadow = true;
-        
+        // Random Spawn Position (Far away)
         const angle = Math.random() * Math.PI * 2;
-        const startX = Math.cos(angle) * data.dist;
-        const startZ = Math.sin(angle) * data.dist;
-        mesh.position.set(startX, 0, startZ);
-        scene.add(mesh);
+        const radius = 250;
+        const x = Math.cos(angle) * radius;
+        const z = Math.sin(angle) * radius;
+        
+        sprite.position.set(x, 0, z);
+        scene.add(sprite);
 
-        // Rings (Saturn)
-        let ringMesh = null;
-        if (data.ring) {
-            const ringGeo = new THREE.RingGeometry(data.size + 1.5, data.size + 5, 64);
-            const ringMat = new THREE.MeshStandardMaterial({ 
-                color: 0xCCBB99, 
-                side: THREE.DoubleSide, 
-                transparent: true, 
-                opacity: 0.8,
-                roughness: 0.5
-            });
-            // Align ring to planet tilt roughly
-            ringMesh = new THREE.Mesh(ringGeo, ringMat);
-            ringMesh.rotation.x = Math.PI / 2.2; 
-            ringMesh.receiveShadow = true;
-            mesh.add(ringMesh); // Attach ring to planet
-        }
+        // Calculate Velocity towards Earth (Intercept course!)
+        const target = earth.pos.clone();
+        // Add some randomness so they don't all hit perfectly center
+        target.x += (Math.random() - 0.5) * 40;
+        target.z += (Math.random() - 0.5) * 40;
 
-        // Velocity Calc
-        const dist = Math.sqrt(startX*startX + startZ*startZ);
-        const speed = Math.sqrt((G * sunBody.mass) / dist);
-        const velX = Math.sin(angle) * speed;
-        const velZ = -Math.cos(angle) * speed;
+        const direction = new THREE.Vector3().subVectors(target, sprite.position).normalize();
+        const velocity = direction.multiplyScalar(type.speed * 1.5); // Speed multiplier
 
-        // Trail
-        const trailGeo = new THREE.BufferGeometry();
-        const trailPositions = new Float32Array(500 * 3); // Longer trail
-        // Initialize trail at planet pos
-        for(let i=0; i<500*3; i+=3) {
-            trailPositions[i] = startX;
-            trailPositions[i+1] = 0;
-            trailPositions[i+2] = startZ;
-        }
-        trailGeo.setAttribute('position', new THREE.BufferAttribute(trailPositions, 3));
-        const trailMat = new THREE.LineBasicMaterial({ 
-            color: 0xffffff, 
-            opacity: 0.2, 
-            transparent: true 
+        enemies.push({
+            mesh: sprite,
+            pos: new THREE.Vector3(x, 0, z),
+            vel: velocity,
+            mass: type.mass,
+            damage: type.damage,
+            name: type.name
         });
-        const trail = new THREE.Line(trailGeo, trailMat);
-        scene.add(trail);
-
-        // Physics Body
-        const body = {
-            name: data.name,
-            mass: data.mass,
-            mesh: mesh,
-            ringMesh: ringMesh, // Attached to mesh now, but keep ref
-            trail: trail,
-            pos: new THREE.Vector3(startX, 0, startZ),
-            vel: new THREE.Vector3(velX, 0, velZ)
-        };
-
-        bodies.push(body);
     }
 
-    function updatePhysics() {
-        // N-Body Gravity
-        for (let i = 0; i < bodies.length; i++) {
-            for (let j = i + 1; j < bodies.length; j++) {
-                const b1 = bodies[i];
-                const b2 = bodies[j];
+    function updateGame() {
+        if(!isPlaying) return;
+
+        frameCount++;
+        
+        // Spawn Logic (Gets harder over time)
+        if (frameCount % Math.floor(spawnRate) === 0) {
+            spawnEnemy();
+            if(spawnRate > 50) spawnRate *= 0.98; // Increase difficulty
+            score += 10;
+            updateHUD();
+        }
+
+        // --- Physics Engine ---
+        const allBodies = [...bodies, ...enemies]; // Physics affects everyone
+
+        for (let i = 0; i < allBodies.length; i++) {
+            for (let j = i + 1; j < allBodies.length; j++) {
+                const b1 = allBodies[i];
+                const b2 = allBodies[j];
+                
+                // Simplified gravity for game performance
+                // Only sun and planets exert gravity, enemies are too light
+                if (b1.mass < 50 && b2.mass < 50) continue; 
 
                 const dx = b2.pos.x - b1.pos.x;
                 const dy = b2.pos.y - b1.pos.y;
                 const dz = b2.pos.z - b1.pos.z;
-                
                 const distSq = dx*dx + dy*dy + dz*dz;
                 const dist = Math.sqrt(distSq);
 
-                if (dist < 1) continue; 
+                if (dist < 5) continue; // Min distance
 
                 const force = (G * b1.mass * b2.mass) / distSq;
-                
-                const fx = (dx / dist) * force;
-                const fy = (dy / dist) * force;
-                const fz = (dz / dist) * force;
+                const fx = (dx/dist) * force;
+                const fz = (dz/dist) * force; // Ignore Y for 2D-ish gameplay
 
                 b1.vel.x += (fx / b1.mass) * TIME_STEP;
-                b1.vel.y += (fy / b1.mass) * TIME_STEP;
                 b1.vel.z += (fz / b1.mass) * TIME_STEP;
-
                 b2.vel.x -= (fx / b2.mass) * TIME_STEP;
-                b2.vel.y -= (fy / b2.mass) * TIME_STEP;
                 b2.vel.z -= (fz / b2.mass) * TIME_STEP;
             }
         }
 
-        // Position Updates
+        // Move Bodies
         bodies.forEach(b => {
-            b.pos.x += b.vel.x * TIME_STEP;
-            b.pos.y += b.vel.y * TIME_STEP;
-            b.pos.z += b.vel.z * TIME_STEP;
-
+            b.pos.add(b.vel.clone().multiplyScalar(TIME_STEP));
             b.mesh.position.copy(b.pos);
-            
-            // Spin Planet (Visual only)
-            if (b.name !== "Sun") {
-                b.mesh.rotation.y += 0.01;
-            } else {
-                b.mesh.rotation.y += 0.002;
-            }
-
-            // Update Trail
-            if (b.trail) {
-                const positions = b.trail.geometry.attributes.position.array;
-                for (let i = positions.length - 1; i >= 3; i--) {
-                    positions[i] = positions[i - 3];
-                }
-                positions[0] = b.pos.x;
-                positions[1] = b.pos.y;
-                positions[2] = b.pos.z;
-                b.trail.geometry.attributes.position.needsUpdate = true;
-            }
         });
 
-        // --- CAMERA TRACKING LOGIC ---
-        // Lock controls target to the Sun
-        if (bodies.length > 0 && bodies[0].name === "Sun") {
-            const sunPos = bodies[0].mesh.position;
-            
-            // Move the camera target to the Sun
-            controls.target.copy(sunPos);
-            
-            // Option 1: Move Camera WITH Sun (Strict Following)
-            // Uncomment below if you want the camera to physically fly with the sun
-            // camera.position.add(bodies[0].vel.clone().multiplyScalar(TIME_STEP));
+        // Move Enemies & Check Collisions
+        for (let i = enemies.length - 1; i >= 0; i--) {
+            const e = enemies[i];
+            e.pos.add(e.vel.clone().multiplyScalar(TIME_STEP));
+            e.mesh.position.copy(e.pos);
+
+            // Check if too far (despawn)
+            if (e.pos.length() > 400) {
+                scene.remove(e.mesh);
+                enemies.splice(i, 1);
+                continue;
+            }
+
+            // Check Collision with Earth
+            const distToEarth = e.pos.distanceTo(earth.pos);
+            if (distToEarth < 8) { // Hit!
+                damageEarth(e.damage);
+                createExplosion(e.pos, 0xff0000);
+                showMessage(`Ouch! Hit by ${e.name}!`);
+                scene.remove(e.mesh);
+                enemies.splice(i, 1);
+            }
+        }
+
+        // Camera Tracking
+        if(earth) {
+            controls.target.lerp(earth.pos, 0.1);
         }
     }
 
-    // --- UI & Interaction ---
-    
-    function showFeedback(text) {
-        const el = document.getElementById('feedback');
-        el.innerText = text;
-        el.style.opacity = 1;
-        setTimeout(() => el.style.opacity = 0, 1500);
+    function damageEarth(amount) {
+        earthHealth -= amount;
+        if(earthHealth < 0) earthHealth = 0;
+        updateHUD();
+        
+        // Screen Shake effect
+        const shake = 2;
+        camera.position.x += (Math.random() - 0.5) * shake;
+        camera.position.z += (Math.random() - 0.5) * shake;
+
+        if (earthHealth <= 0) {
+            gameOver("Earth was destroyed by Space Junk!");
+        }
     }
 
-    window.pushPlanet = function(multiplier) {
-        const pName = document.getElementById('planetSelector').value;
-        const planet = bodies.find(b => b.name === pName);
-        if (planet && planet.name !== "Sun") {
-            planet.vel.multiplyScalar(multiplier);
-            showFeedback(`${planet.name} Velocity x${multiplier}`);
-        }
-    };
-
-    window.swapPlanets = function() {
-        const n1 = document.getElementById('swap1').value;
-        const n2 = document.getElementById('swap2').value;
-
-        if (n1 === n2) return;
-        const b1 = bodies.find(b => b.name === n1);
-        const b2 = bodies.find(b => b.name === n2);
-
-        if (b1 && b2) {
-            const tempPos = b1.pos.clone();
-            b1.pos.copy(b2.pos);
-            b2.pos.copy(tempPos);
-            
-            // Reset trails
-            [b1, b2].forEach(b => {
-                 const positions = b.trail.geometry.attributes.position.array;
-                 for(let i=0; i<positions.length; i+=3) {
-                     positions[i] = b.pos.x;
-                     positions[i+1] = b.pos.y;
-                     positions[i+2] = b.pos.z;
-                 }
-                 b.trail.geometry.attributes.position.needsUpdate = true;
-            });
-            showFeedback(`Swapped: ${n1} <-> ${n2}`);
-        }
-    };
-
-    window.resetSystem = function() {
-        createSystem();
-        populateUI();
-        document.getElementById('sunMass').value = 1000;
-        showFeedback("System Reset");
-    };
-
-    // Listeners
-    document.getElementById('sunIntensity').addEventListener('input', (e) => {
-        if(sunLight) sunLight.intensity = parseFloat(e.target.value);
-    });
-
-    document.getElementById('sunMass').addEventListener('input', (e) => {
-        if(bodies.length > 0) bodies[0].mass = parseFloat(e.target.value);
-    });
-
-    document.getElementById('planetMass').addEventListener('input', (e) => {
-        const pName = document.getElementById('planetSelector').value;
-        const planet = bodies.find(b => b.name === pName);
-        if (planet) planet.mass = parseFloat(e.target.value);
-    });
-
-    function populateUI() {
-        const planetSel = document.getElementById('planetSelector');
-        const swap1 = document.getElementById('swap1');
-        const swap2 = document.getElementById('swap2');
-        planetSel.innerHTML = ""; swap1.innerHTML = ""; swap2.innerHTML = "";
-
-        bodies.forEach(b => {
-            if (b.name === "Sun") return;
-            const opt = document.createElement('option');
-            opt.value = b.name;
-            opt.innerText = b.name;
-            planetSel.appendChild(opt.cloneNode(true));
-            swap1.appendChild(opt.cloneNode(true));
-            swap2.appendChild(opt.cloneNode(true));
-        });
+    function gameOver(reason) {
+        isPlaying = false;
+        document.getElementById('game-over').style.display = 'flex';
+        document.getElementById('death-reason').innerText = reason;
+        document.getElementById('final-score').innerText = score;
     }
 
+    // --- Player Actions ---
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
 
-    function onDocumentMouseDown(event) {
-        event.preventDefault();
+    function onMouseDown(event) {
+        if(!isPlaying) return;
+
         mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
         mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
         raycaster.setFromCamera(mouse, camera);
-        
-        const intersects = raycaster.intersectObjects(scene.children, true); // Recursive for rings
+
+        // Check enemy hits
+        const enemyMeshes = enemies.map(e => e.mesh);
+        const intersects = raycaster.intersectObjects(enemyMeshes);
+
         if (intersects.length > 0) {
-            // Find the root object (planet mesh)
-            let obj = intersects[0].object;
-            // Traverse up if we hit a ring
-            while(obj.parent && obj.parent.type !== 'Scene') {
-                obj = obj.parent;
-            }
+            const hitObj = intersects[0].object;
+            const enemyIndex = enemies.findIndex(e => e.mesh === hitObj);
             
-            const body = bodies.find(b => b.mesh === obj);
-            if (body && body.name !== "Sun") {
-                document.getElementById('planetSelector').value = body.name;
-                document.getElementById('planetMass').value = body.mass;
-                showFeedback(`Target Locked: ${body.name}`);
+            if (enemyIndex > -1) {
+                // DESTROY ENEMY
+                createExplosion(enemies[enemyIndex].pos, 0xffff00);
+                scene.remove(hitObj);
+                enemies.splice(enemyIndex, 1);
+                
+                score += 50;
+                showFloatText(event.clientX, event.clientY, "+50");
+                updateHUD();
             }
         }
+    }
+
+    window.activateShield = function() {
+        if(!isPlaying) return;
+        // Pushes all enemies away from Earth
+        enemies.forEach(e => {
+            const dir = new THREE.Vector3().subVectors(e.pos, earth.pos).normalize();
+            e.vel.add(dir.multiplyScalar(2)); // Strong push
+        });
+        createExplosion(earth.pos, 0x4db8ff, 20); // Visual Pulse
+        showMessage("Gravity Shield Activated!");
+    };
+
+    window.sunPulse = function() {
+        if(!isPlaying) return;
+        // Destroys all enemies
+        enemies.forEach(e => {
+            createExplosion(e.pos, 0xffaa00);
+            scene.remove(e.mesh);
+        });
+        enemies = [];
+        showMessage("SUN NUKE!!!!");
+        score += 100;
+        updateHUD();
+    };
+
+    // --- Visual Effects ---
+    function createExplosion(pos, color, size=5) {
+        // Simple particle explosion
+        const geom = new THREE.BufferGeometry();
+        const count = 20;
+        const positions = new Float32Array(count * 3);
+        const vels = [];
+        
+        for(let i=0; i<count; i++) {
+            positions[i*3] = pos.x;
+            positions[i*3+1] = pos.y;
+            positions[i*3+2] = pos.z;
+            
+            vels.push(new THREE.Vector3(
+                (Math.random()-0.5)*2, 
+                (Math.random()-0.5)*2, 
+                (Math.random()-0.5)*2
+            ));
+        }
+        geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        
+        const mat = new THREE.PointsMaterial({ color: color, size: size/2 });
+        const points = new THREE.Points(geom, mat);
+        scene.add(points);
+        
+        particles.push({ mesh: points, vels: vels, life: 1.0 });
+    }
+
+    function updateParticles() {
+        for(let i=particles.length-1; i>=0; i--) {
+            const p = particles[i];
+            p.life -= 0.05;
+            if(p.life <= 0) {
+                scene.remove(p.mesh);
+                particles.splice(i, 1);
+                continue;
+            }
+            
+            const positions = p.mesh.geometry.attributes.position.array;
+            for(let j=0; j<p.vels.length; j++) {
+                positions[j*3] += p.vels[j].x;
+                positions[j*3+1] += p.vels[j].y;
+                positions[j*3+2] += p.vels[j].z;
+            }
+            p.mesh.geometry.attributes.position.needsUpdate = true;
+            p.mesh.material.opacity = p.life;
+        }
+    }
+
+    function showMessage(msg) {
+        const el = document.getElementById('message-box');
+        el.innerText = msg;
+        el.style.opacity = 1;
+        setTimeout(() => el.style.opacity = 0, 2000);
+    }
+
+    function showFloatText(x, y, text) {
+        const el = document.createElement('div');
+        el.className = 'floater';
+        el.innerText = text;
+        el.style.left = x + 'px';
+        el.style.top = y + 'px';
+        document.body.appendChild(el);
+        setTimeout(() => el.remove(), 1000);
+    }
+
+    function updateHUD() {
+        document.getElementById('score').innerText = score;
+        const bar = document.getElementById('health-bar');
+        bar.style.width = earthHealth + '%';
+        
+        if (earthHealth > 50) bar.style.background = '#33ff33';
+        else if (earthHealth > 20) bar.style.background = '#ffff00';
+        else bar.style.background = '#ff0000';
+        
+        document.getElementById('health-text').innerText = `Earth Health: ${Math.floor(earthHealth)}%`;
+    }
+
+    function createStarfield() {
+        const starGeo = new THREE.BufferGeometry();
+        const starCount = 3000;
+        const posArray = new Float32Array(starCount * 3);
+        for(let i=0; i<starCount * 3; i++) posArray[i] = (Math.random() - 0.5) * 2000;
+        starGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+        const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({color: 0xffffff, size: 1}));
+        scene.add(stars);
     }
 
     function onWindowResize() {
@@ -628,8 +633,9 @@
 
     function animate() {
         requestAnimationFrame(animate);
-        updatePhysics();
-        controls.update(); // Important for damping and tracking
+        updateGame();
+        updateParticles();
+        controls.update();
         renderer.render(scene, camera);
     }
 
