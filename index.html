@@ -4,817 +4,220 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>QR Send - Pro Ultimate</title>
+    <title>QR Send - Watch Party Edition</title>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', sans-serif;
-            -webkit-tap-highlight-color: transparent;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; -webkit-tap-highlight-color: transparent; }
         :root {
-            --primary: #075e54;
-            --secondary: #128c7e;
-            --light: #dcf8c6;
-            --dark: #1f2c34;
-            --bg: #e5ddd5;
-            --white: #ffffff;
-            --text: #000000;
-            --msg-sent: #dcf8c6;
-            --msg-recv: #ffffff;
-            --border: #ddd;
-            --red: #d32f2f;
-            --green: #25d366;
+            --primary: #075e54; --secondary: #128c7e; --bg: #e5ddd5; --white: #ffffff;
+            --text: #000000; --msg-sent: #dcf8c6; --msg-recv: #ffffff; --border: #ddd;
+            --red: #d32f2f; --green: #25d366; --black: #000000;
         }
-
-        /* DARK MODE VARIABLES */
         body.dark-mode {
-            --primary: #1f2c34;
-            --secondary: #00af9c;
-            --bg: #0b141a;
-            --white: #111b21;
-            --text: #e9edef;
-            --msg-sent: #005c4b;
-            --msg-recv: #202c33;
-            --border: #2a3942;
-            --light: #005c4b;
+            --primary: #1f2c34; --secondary: #00af9c; --bg: #0b141a; --white: #111b21;
+            --text: #e9edef; --msg-sent: #005c4b; --msg-recv: #202c33; --border: #2a3942;
         }
-
-        body {
-            background: var(--bg);
-            height: 100dvh;
-            display: flex;
-            justify-content: center;
-            overflow: hidden;
-            color: var(--text);
-            transition: background 0.3s;
-        }
-
-        .app-container {
-            width: 100%;
-            max-width: 1000px;
-            height: 100%;
-            background: var(--white);
-            display: flex;
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
-            position: relative;
-            transition: background 0.3s;
-        }
+        body { background: var(--bg); height: 100dvh; display: flex; justify-content: center; overflow: hidden; color: var(--text); transition: background 0.3s; }
+        .app-container { width: 100%; max-width: 1000px; height: 100%; background: var(--white); display: flex; box-shadow: 0 0 20px rgba(0, 0, 0, 0.1); position: relative; transition: background 0.3s; }
 
         /* SIDEBAR */
-        .sidebar {
-            width: 350px;
-            border-right: 1px solid var(--border);
-            display: flex;
-            flex-direction: column;
-            background: var(--white);
-            transition: transform 0.3s ease, background 0.3s;
-            z-index: 100;
-        }
-
-        .header {
-            padding: 15px;
-            background: var(--primary);
-            color: white;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            height: 60px;
-            flex-shrink: 0;
-            transition: background 0.3s;
-        }
-
-        .status-badge {
-            font-size: 12px;
-            background: rgba(255, 255, 255, 0.2);
-            padding: 4px 8px;
-            border-radius: 12px;
-            color: white;
-        }
-
-        .connect-panel {
-            padding: 20px;
-            text-align: center;
-            flex-grow: 1;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        #qrcode {
-            background: white;
-            padding: 10px;
-            display: inline-block;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-
-        #qrcode img, #qrcode canvas {
-            display: block;
-            max-width: 100%;
-        }
-
-        .btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: bold;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            margin: 5px;
-            transition: 0.2s;
-        }
-
-        .btn-primary {
-            background: var(--secondary);
-            color: white;
-        }
-
-        .btn-outline {
-            border: 1px solid var(--secondary);
-            color: var(--secondary);
-            background: transparent;
-        }
-
-        .btn:active {
-            transform: scale(0.98);
-        }
-
-        /* FILE TRANSFER SECTION */
-        .files-panel {
-            padding: 15px;
-            background: var(--white);
-            border-top: 1px solid var(--border);
-            display: flex;
-            flex-direction: column;
-            flex-grow: 1;
-            min-height: 0;
-            max-height: 50%;
-            transition: background 0.3s;
-        }
-
-        .files-header {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 15px;
-            font-weight: bold;
-            align-items: center;
-            flex-shrink: 0;
-        }
-
-        /* --- 3D MAGIC FOLDER BUTTON --- */
-        .magic-btn-small {
-            position: relative;
-            padding: 8px 15px;
-            border-radius: 8px;
-            background: var(--white);
-            border: 1px solid var(--border);
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-weight: bold;
-            font-size: 13px;
-            color: var(--text);
-            transform-style: preserve-3d;
-            transition: transform 0.1s;
-            z-index: 1;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        }
-
-        .magic-btn-small:active {
-            transform: scale(0.95);
-        }
-
-        .magic-btn-small::before {
-            content: "";
-            position: absolute;
-            top: -2px; left: -2px; right: -2px; bottom: -2px;
-            background: linear-gradient(45deg, #4285f4, #db4437, #f4b400, #0f9d58);
-            z-index: -1;
-            border-radius: 10px;
-            filter: blur(6px);
-            opacity: 0.8;
-            animation: glowing 3s linear infinite;
-        }
-
-        .magic-btn-small::after {
-            content: "";
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: var(--white);
-            border-radius: 8px;
-            z-index: -1;
-        }
-
-        @keyframes glowing {
-            0% { filter: blur(5px); opacity: 0.6; }
-            50% { filter: blur(8px); opacity: 0.9; }
-            100% { filter: blur(5px); opacity: 0.6; }
-        }
-
-        #file-input { display: none; }
-
-        #transfer-list {
-            flex-grow: 1;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            padding-right: 5px;
-            min-height: 0;
-        }
-
-        .transfer-item {
-            background: var(--msg-recv);
-            padding: 10px;
-            border-radius: 6px;
-            border: 1px solid var(--border);
-            position: relative;
-            font-size: 13px;
-            flex-shrink: 0;
-            color: var(--text);
-        }
-
-        .t-info {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 5px;
-        }
-
-        .t-name {
-            font-weight: 600;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            max-width: 160px;
-        }
-
-        .t-bar-bg {
-            height: 6px;
-            background: #ddd;
-            border-radius: 3px;
-            overflow: hidden;
-        }
-
-        .t-bar-fill {
-            height: 100%;
-            background: var(--green);
-            width: 0%;
-            transition: width 0.2s;
-        }
-
-        .t-meta {
-            display: flex;
-            justify-content: space-between;
-            font-size: 11px;
-            color: #888;
-            margin-top: 4px;
-        }
-
-        .btn-cancel {
-            background: transparent;
-            color: var(--red);
-            border: none;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            line-height: 1;
-        }
-
-        /* CHAT SECTION */
-        .chat-area {
-            flex-grow: 1;
-            display: flex;
-            flex-direction: column;
-            background-color: var(--bg);
-            /* Dark mode pattern overlay handled by body class opacity if needed, but simple color is better for dark mode */
-            position: relative;
-        }
+        .sidebar { width: 350px; border-right: 1px solid var(--border); display: flex; flex-direction: column; background: var(--white); transition: transform 0.3s ease; z-index: 100; }
+        .header { padding: 15px; background: var(--primary); color: white; display: flex; justify-content: space-between; align-items: center; height: 60px; flex-shrink: 0; }
+        .status-badge { font-size: 12px; background: rgba(255, 255, 255, 0.2); padding: 4px 8px; border-radius: 12px; color: white; }
+        .connect-panel { padding: 20px; text-align: center; flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; align-items: center; }
+        #qrcode { background: white; padding: 10px; display: inline-block; border-radius: 8px; margin-bottom: 15px; }
+        #qrcode img { display: block; max-width: 100%; }
+        .btn { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; display: inline-flex; align-items: center; gap: 8px; margin: 5px; transition: 0.2s; }
+        .btn-primary { background: var(--secondary); color: white; }
+        .btn-outline { border: 1px solid var(--secondary); color: var(--secondary); background: transparent; }
         
-        body:not(.dark-mode) .chat-area {
-             background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
+        /* WATCH PARTY BUTTON */
+        .watch-party-btn {
+            background: linear-gradient(45deg, #ff416c, #ff4b2b);
+            color: white; width: 90%; padding: 15px; border-radius: 10px; border: none;
+            font-size: 16px; font-weight: bold; cursor: pointer; margin: 10px auto;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            box-shadow: 0 4px 15px rgba(255, 75, 43, 0.3); animation: pulse-btn 2s infinite;
         }
+        @keyframes pulse-btn { 0% { transform: scale(1); } 50% { transform: scale(1.02); } 100% { transform: scale(1); } }
 
-        .chat-header {
-            padding: 10px 15px;
-            background: var(--white);
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            height: 60px;
-            flex-shrink: 0;
-            transition: background 0.3s;
-        }
+        /* FILES */
+        .files-panel { padding: 15px; background: var(--white); border-top: 1px solid var(--border); display: flex; flex-direction: column; flex-grow: 1; min-height: 0; max-height: 50%; }
+        .files-header { display: flex; justify-content: space-between; margin-bottom: 10px; font-weight: bold; align-items: center; }
+        .magic-btn-small { padding: 8px 15px; border-radius: 8px; background: var(--white); border: 1px solid var(--border); cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: bold; font-size: 13px; color: var(--text); }
+        #transfer-list { flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-right: 5px; }
+        .transfer-item { background: var(--msg-recv); padding: 10px; border-radius: 6px; border: 1px solid var(--border); font-size: 13px; color: var(--text); }
+        .t-bar-fill { height: 6px; background: var(--green); width: 0%; border-radius: 3px; transition: width 0.2s; margin-top: 5px; }
 
-        .chat-user {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
+        /* CHAT AREA */
+        .chat-area { flex-grow: 1; display: flex; flex-direction: column; background-color: var(--bg); position: relative; }
+        body:not(.dark-mode) .chat-area { background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); }
+        .chat-header { padding: 10px 15px; background: var(--white); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; height: 60px; flex-shrink: 0; }
+        .chat-user { display: flex; align-items: center; gap: 10px; }
+        .theme-toggle-btn { background: none; border: none; font-size: 20px; cursor: pointer; margin-right: 5px; }
+        .messages { flex-grow: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
+        .msg { max-width: 75%; padding: 8px 12px; border-radius: 8px; font-size: 14px; position: relative; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); word-break: break-word; color: var(--text); }
+        .msg.sent { align-self: flex-end; background: var(--msg-sent); color: body.dark-mode ? #e9edef : #000; }
+        .msg.received { align-self: flex-start; background: var(--msg-recv); }
+        .input-area { padding: 10px; background: var(--white); display: flex; align-items: center; gap: 8px; flex-shrink: 0; border-top: 1px solid var(--border); }
+        #msg-input { flex-grow: 1; padding: 12px; border: none; border-radius: 20px; outline: none; font-size: 15px; background: var(--bg); color: var(--text); }
+        .send-btn { background: var(--secondary); color: white; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; }
 
-        /* DARK MODE TOGGLE BTN */
-        .theme-toggle-btn {
-            background: none;
-            border: none;
-            font-size: 20px;
-            cursor: pointer;
-            padding: 5px;
-            margin-right: 5px;
-        }
-
-        /* Sound Toggle Button */
-        .sound-toggle-btn {
-            width: 40px;
-            height: 40px;
-            background: var(--white);
-            border: 1px solid var(--border);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            font-size: 18px;
-            transition: 0.2s;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-            color: var(--text);
-        }
-
-        .sound-toggle-btn:active { transform: scale(0.9); }
-        .sound-mode-ring { color: var(--secondary); }
-        .sound-mode-vibrate { color: #ff9800; }
-        .sound-mode-silent { color: #999; text-decoration: line-through; }
-
-        .chat-actions {
-            display: flex;
-            gap: 15px;
-            align-items: center;
-        }
-
-        .icon-btn {
-            background: none;
-            border: none;
-            cursor: pointer;
-            color: var(--secondary);
-            padding: 8px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: background 0.2s;
-        }
-
-        .icon-btn:hover { background: rgba(0, 0, 0, 0.05); }
-        .icon-btn svg { width: 24px; height: 24px; fill: currentColor; }
-
-        .messages {
-            flex-grow: 1;
-            overflow-y: auto;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            -webkit-overflow-scrolling: touch;
-        }
-
-        .msg {
-            max-width: 75%;
-            padding: 8px 12px;
-            border-radius: 8px;
-            font-size: 14px;
-            position: relative;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-            word-break: break-word;
-            color: var(--text);
-        }
-
-        .msg.sent {
-            align-self: flex-end;
-            background: var(--msg-sent);
-            color: body.dark-mode ? #e9edef : #000;
-            border-top-right-radius: 0;
-        }
-        
-        /* Specific fix for dark mode text color in sent bubble */
-        body.dark-mode .msg.sent { color: #e9edef; }
-
-        .msg.received {
-            align-self: flex-start;
-            background: var(--msg-recv);
-            border-top-left-radius: 0;
-        }
-
-        .msg-time {
-            font-size: 10px;
-            color: #999;
-            float: right;
-            margin-top: 5px;
-            margin-left: 10px;
-            display: flex;
-            align-items: center;
-            gap: 3px;
-        }
-        
-        body.dark-mode .msg-time { color: #bbb; }
-
-        .double-tick {
-            color: #4fc3f7;
-            font-weight: bold;
-            font-size: 10px;
-        }
-
-        .msg img {
-            max-width: 100%;
-            border-radius: 6px;
-            cursor: pointer;
-            display: block;
-        }
-
-        /* Voice Note Styling */
-        .audio-msg {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            min-width: 200px;
-        }
-        .audio-msg audio {
-            height: 30px;
-            max-width: 220px;
-        }
-
-        .reply-bar {
-            background: var(--white);
-            padding: 5px 15px;
-            border-left: 5px solid var(--secondary);
-            display: none;
-            justify-content: space-between;
-            font-size: 12px;
-            color: var(--text);
-            flex-shrink: 0;
-        }
-
-        .msg-reply-preview {
-            background: rgba(0, 0, 0, 0.05);
-            padding: 4px;
-            border-left: 3px solid var(--secondary);
-            margin-bottom: 4px;
-            border-radius: 4px;
-            font-size: 11px;
-            color: var(--text);
-        }
-        
-        body.dark-mode .msg-reply-preview { background: rgba(255, 255, 255, 0.1); }
-
-        .reply-btn {
-            position: absolute;
-            top: 5px; right: -25px;
-            background: var(--white);
-            border-radius: 50%;
-            width: 20px; height: 20px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-            cursor: pointer;
-            display: none;
-            align-items: center; justify-content: center;
-            font-size: 12px;
-            color: #333;
-        }
-        .msg:hover .reply-btn { display: flex; }
-
-        /* INPUT AREA */
-        .input-area {
-            padding: 10px;
-            background: var(--white);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex-shrink: 0;
-            width: 100%;
-            box-sizing: border-box;
-            border-top: 1px solid var(--border);
-        }
-
-        #msg-input {
-            flex-grow: 1;
-            padding: 12px;
-            border: none;
-            border-radius: 20px;
-            outline: none;
-            font-size: 15px;
-            min-width: 0;
-            background: var(--bg);
-            color: var(--text);
-        }
-
-        .send-btn {
-            background: var(--secondary);
-            color: white;
-            border: none;
-            width: 40px; height: 40px;
-            border-radius: 50%;
-            cursor: pointer;
-            display: flex;
-            align-items: center; justify-content: center;
-            flex-shrink: 0;
-            margin-right: 2px;
-        }
-
-        /* RECORDING ANIMATION */
-        .recording-box {
-            display: none;
-            color: var(--red);
-            font-weight: bold;
-            font-size: 14px;
-            align-items: center;
-            gap: 10px;
-            flex-grow: 1;
-        }
-        .mic-active {
-            animation: pulse-red 1s infinite;
-        }
-        @keyframes pulse-red {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-            100% { transform: scale(1); }
-        }
-
-        .typing-indicator {
-            font-size: 11px;
-            color: var(--secondary);
-            font-weight: bold;
-            animation: flash 1.5s infinite;
-            display: none;
-        }
-
-        @keyframes flash {
-            0% { opacity: 0.3; }
-            50% { opacity: 1; }
-            100% { opacity: 0.3; }
-        }
-
-        .mobile-only { display: none; }
-
-        /* CALL OVERLAYS */
-        .fullscreen-overlay {
+        /* --- THEATER MODE (WATCH PARTY) --- */
+        #theater-mode {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            z-index: 2000;
-            background: rgba(0, 0, 0, 0.9);
-            display: none;
-            flex-direction: column;
-            align-items: center; justify-content: center;
-            color: white;
-        }
-
-        .call-card {
-            background: #1f2c34;
-            padding: 40px;
-            border-radius: 20px;
-            text-align: center;
-            width: 300px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-        }
-
-        .call-avatar-lg {
-            width: 100px; height: 100px;
-            background: #ddd;
-            border-radius: 50%;
-            margin: 0 auto 20px;
-            overflow: hidden;
-        }
-
-        .call-actions {
-            display: flex; justify-content: space-around; margin-top: 40px;
-        }
-
-        .call-btn {
-            width: 60px; height: 60px;
-            border-radius: 50%;
-            border: none;
-            cursor: pointer;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 24px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-            transition: transform 0.2s;
-        }
-
-        .btn-accept { background: var(--green); color: white; animation: pulse 1.5s infinite; }
-        .btn-reject { background: var(--red); color: white; }
-
-        @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.7); }
-            70% { box-shadow: 0 0 0 15px rgba(37, 211, 102, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(37, 211, 102, 0); }
-        }
-
-        .active-call-ui {
-            width: 100%; height: 100%;
-            position: relative;
-            display: flex; flex-direction: column;
-        }
-
-        /* FEATURE 3: Canvas for Live Drawing */
-        #draw-canvas {
-            position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            z-index: 10;
-            touch-action: none;
-            pointer-events: auto; /* Allows drawing */
-        }
-
-        #remote-video { width: 100%; height: 100%; object-fit: contain; background: black; }
-        #local-video {
-            position: absolute; bottom: 100px; right: 20px;
-            width: 120px; height: 160px;
-            background: #333;
-            border-radius: 10px; border: 2px solid white;
-            object-fit: cover;
-            z-index: 5;
-        }
-
-        .call-controls-bar {
-            position: absolute; bottom: 20px; left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.6);
-            padding: 15px 30px;
-            border-radius: 30px;
-            display: flex; gap: 20px;
-            z-index: 20;
-        }
-
-        .control-btn {
-            width: 50px; height: 50px;
-            border-radius: 50%; border: none;
-            background: rgba(255, 255, 255, 0.2);
-            color: white; cursor: pointer;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 20px;
-        }
-        .control-btn.off { background: white; color: black; }
-        .btn-hangup { background: var(--red); }
-
-        /* Connection Lock */
-        .connection-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.85);
-            display: none;
-            align-items: center; justify-content: center;
-            z-index: 9999;
-            backdrop-filter: blur(10px);
+            background: #000; z-index: 5000; display: none;
             flex-direction: column;
         }
         
-        .firebase-glow-btn {
-            background: #ffffff;
-            border: 2px solid #ffffff;
-            border-radius: 12px;
-            width: 42px; height: 42px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 20px; cursor: pointer;
-            margin-right: 10px;
-            box-shadow: 0 0 10px rgba(255, 193, 7, 0.6), 0 0 20px rgba(255, 87, 34, 0.4);
-            animation: firebasePulse 2s infinite ease-in-out;
-            transition: transform 0.2s;
-        }
-        .firebase-glow-btn:active { transform: scale(0.92); }
-        @keyframes firebasePulse {
-            0% { box-shadow: 0 0 8px rgba(255, 193, 7, 0.5); }
-            50% { box-shadow: 0 0 18px rgba(255, 160, 0, 0.8), 0 0 12px rgba(255, 255, 255, 0.6); }
-            100% { box-shadow: 0 0 8px rgba(255, 193, 7, 0.5); }
+        .theater-content {
+            flex-grow: 1; position: relative; display: flex; 
+            align-items: center; justify-content: center; width: 100%; height: 100%;
         }
 
-        .lock-svg { width: 120px; height: 120px; }
-        .lock-body { fill: #4285f4; animation: lockBody 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
-        .lock-shackle { fill: none; stroke: #4285f4; stroke-width: 5; stroke-linecap: round; transform-origin: 50% 35%; animation: lockShackle 0.6s ease forwards 0.4s; }
-        .checkmark { fill: none; stroke: #34a853; stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 100; stroke-dashoffset: 100; animation: checkDraw 0.5s ease forwards 1s; }
-        @keyframes lockBody { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-        @keyframes lockShackle { 0% { transform: translateY(-15px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
-        @keyframes checkDraw { to { stroke-dashoffset: 0; } }
-
-        /* PERMISSION GUIDE MODAL */
-        .perm-modal {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.9); z-index: 9999;
-            display: none; justify-content: center; align-items: center; padding: 20px;
-        }
-        .perm-card {
-            background: white; border-radius: 15px; padding: 25px;
-            max-width: 350px; width: 100%; text-align: center;
-            animation: slideUp 0.3s ease-out;
-            color: #333;
-        }
-        @keyframes slideUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-        .perm-icon { font-size: 40px; margin-bottom: 15px; }
-        .perm-step {
-            display: flex; align-items: center; gap: 10px; text-align: left;
-            margin-bottom: 10px; font-size: 14px; color: #333;
-            background: #f5f5f5; padding: 10px; border-radius: 8px;
-        }
-        .perm-step span {
-            background: var(--secondary); color: white;
-            width: 20px; height: 20px; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 12px; flex-shrink: 0;
-        }
-        .btn-perm-ok {
-            background: var(--secondary); color: white; width: 100%;
-            padding: 12px; border: none; border-radius: 8px;
-            margin-top: 15px; cursor: pointer; font-weight: bold;
+        /* The Movie Player */
+        video.movie-player {
+            width: 100%; height: 100%; max-height: 100vh;
+            object-fit: contain;
         }
 
-        .modal {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.9); z-index: 3000;
-            display: none; justify-content: center; align-items: center;
-        }
-        .modal img { max-width: 95%; max-height: 90%; border-radius: 8px; object-fit: contain; }
-        .modal-close {
-            position: absolute; top: 20px; right: 20px; color: white;
-            font-size: 30px; cursor: pointer; background: rgba(0, 0, 0, 0.5);
-            width: 40px; height: 40px; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-        }
-        .modal-dl {
-            position: absolute; bottom: 30px; background: white;
-            color: black; padding: 10px 20px; border-radius: 20px;
-            text-decoration: none; font-weight: bold;
-        }
-
-        #scanner-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: black; z-index: 4000;
-            display: none; flex-direction: column;
-        }
-        #qr-reader { flex-grow: 1; }
-        .scanner-close {
+        /* Floating Peer Video (PiP) */
+        .peer-pip {
             position: absolute; top: 20px; right: 20px;
-            color: white; z-index: 4001; font-size: 30px; cursor: pointer;
+            width: 150px; height: 200px;
+            background: #333; border: 2px solid #fff;
+            border-radius: 10px; overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            cursor: move; z-index: 5002;
+            transition: width 0.2s, height 0.2s;
         }
+        .peer-pip video { width: 100%; height: 100%; object-fit: cover; }
+        .peer-pip.enlarged { width: 300px; height: 400px; }
 
+        /* Self Video (Small) */
+        .self-pip {
+            position: absolute; bottom: 80px; right: 20px;
+            width: 80px; height: 100px;
+            background: #222; border: 1px solid #fff;
+            border-radius: 8px; overflow: hidden; z-index: 5003;
+        }
+        .self-pip video { width: 100%; height: 100%; object-fit: cover; }
+
+        /* Theater Controls */
+        .theater-controls {
+            position: absolute; bottom: 0; left: 0; width: 100%;
+            background: linear-gradient(transparent, rgba(0,0,0,0.9));
+            padding: 20px; display: flex; align-items: center; justify-content: space-between;
+            z-index: 5004; opacity: 0; transition: opacity 0.3s;
+        }
+        #theater-mode:hover .theater-controls { opacity: 1; }
+
+        .control-group { display: flex; gap: 15px; align-items: center; }
+        .t-btn { background: rgba(255,255,255,0.2); border: none; color: white; padding: 10px; border-radius: 50%; cursor: pointer; width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; font-size: 20px; transition: 0.2s; }
+        .t-btn:hover { background: rgba(255,255,255,0.4); }
+        .t-btn.active { background: var(--green); }
+        .t-btn.danger { background: var(--red); }
+
+        /* General Overlays */
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 4000; display: none; flex-direction: column; align-items: center; justify-content: center; color: white; }
+        
+        #scanner-overlay { background: black; display: none; }
+        #qr-reader { width: 100%; max-width: 500px; }
+        .close-overlay { position: absolute; top: 20px; right: 20px; font-size: 30px; color: white; cursor: pointer; z-index: 4002; }
+
+        /* Mobile Responsive */
         @media (max-width: 768px) {
-            .app-container { flex-direction: column; width: 100%; }
-            .sidebar {
-                width: 100%; height: 100%; position: absolute;
-                top: 0; left: 0; transform: translateX(0);
-            }
+            .app-container { flex-direction: column; }
+            .sidebar { width: 100%; height: 100%; position: absolute; transform: translateX(0); }
             .sidebar.hidden { transform: translateX(-100%); }
-            .chat-area { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 50; }
-            .mobile-only { display: inline-block; }
-            .files-panel { max-height: none; }
-            .header { padding-right: 10px; }
-            .btn-close-sidebar {
-                background: none; border: none; color: white;
-                font-size: 20px; cursor: pointer; margin-right: 10px;
-            }
-            #local-video { width: 90px; height: 120px; bottom: 120px; right: 10px; }
-            .input-area { padding: 8px; gap: 6px; }
+            .mobile-only { display: block; }
+            .peer-pip { width: 100px; height: 140px; top: 10px; right: 10px; }
+            .self-pip { width: 60px; height: 80px; bottom: 70px; right: 10px; }
+            .theater-controls { padding: 10px; flex-wrap: wrap; justify-content: center; }
         }
     </style>
 </head>
 
 <body>
-    <audio id="ringtone" loop src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"></audio>
+    <!-- NOTIFICATION SOUND -->
+    <audio id="msg-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"></audio>
 
+    <!-- THEATER MODE (WATCH PARTY UI) -->
+    <div id="theater-mode">
+        <div class="theater-content">
+            <!-- Main Movie -->
+            <video id="movie-player" class="movie-player" playsinline></video>
+            
+            <!-- Peer Video (Draggable) -->
+            <div id="peer-video-container" class="peer-pip">
+                <video id="peer-video" autoplay playsinline></video>
+            </div>
+
+            <!-- Self Video -->
+            <div class="self-pip">
+                <video id="self-video" autoplay playsinline muted></video>
+            </div>
+
+            <!-- Controls -->
+            <div class="theater-controls">
+                <div class="control-group">
+                    <button class="t-btn danger" onclick="exitTheater()" title="Exit Watch Party">✕</button>
+                    <span style="color:white; font-weight:bold; font-size:14px;">🎬 Watch Party</span>
+                </div>
+
+                <!-- Sync Controls (Play/Pause are handled by video element, these are for extra actions) -->
+                <div class="control-group" style="color:#aaa; font-size:12px;">
+                    <span id="sync-status">Synced</span>
+                </div>
+
+                <!-- Call Controls -->
+                <div class="control-group">
+                    <button id="btn-mic" class="t-btn" onclick="toggleMic()" title="Toggle Mic">🎤</button>
+                    <button id="btn-cam" class="t-btn" onclick="toggleCam()" title="Toggle Camera">📷</button>
+                    <button class="t-btn" onclick="document.getElementById('movie-file').click()" title="Change Movie">📂</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN APP -->
     <div class="app-container">
         <!-- SIDEBAR -->
         <div class="sidebar" id="sidebar">
             <div class="header">
                 <div style="display:flex; align-items:center;">
-                    <button class="mobile-only btn-close-sidebar" onclick="toggleSidebar()">←</button>
+                    <button class="mobile-only btn" style="background:none; color:white; padding:0; margin-right:10px;" onclick="toggleSidebar()">←</button>
                     <h2>QR Send</h2>
                 </div>
                 <div style="display:flex; align-items:center;">
-                    <button class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle Dark Mode">🌓</button>
+                    <button class="theme-toggle-btn" onclick="toggleTheme()" style="background:none; border:none; font-size:20px; cursor:pointer; margin-right:5px;">🌓</button>
                     <span id="status-badge" class="status-badge">Disconnected</span>
                 </div>
             </div>
 
             <div class="connect-panel" id="connect-panel">
                 <div id="qrcode"></div>
-                <p id="connect-msg" style="color:#666; margin-bottom:10px;">Scan to connect devices</p>
-                <div style="display:flex; justify-content:center; flex-wrap:wrap;">
-                    <button class="btn btn-outline" onclick="shareQRCode()">🔗 Share QR</button>
-                    <button class="btn btn-primary" onclick="startScanner()">📷 Scan QR</button>
+                <p style="color:#666; margin-bottom:10px; font-size:13px;">Scan to connect</p>
+                <div style="display:flex; justify-content:center; gap:5px;">
+                    <button class="btn btn-outline" onclick="shareQRCode()">🔗 Share</button>
+                    <button class="btn btn-primary" onclick="startScanner()">📷 Scan</button>
                 </div>
             </div>
+
+            <!-- WATCH PARTY START BUTTON -->
+            <button class="watch-party-btn" onclick="document.getElementById('movie-file').click()">
+                <span>🎬</span> Start Watch Party
+            </button>
+            <input type="file" id="movie-file" accept="video/*, .mkv, .mp4" style="display:none" onchange="startWatchParty(this)">
 
             <div class="files-panel" id="files-panel">
                 <div class="files-header">
                     <span>File Transfer</span>
-                    <button class="magic-btn-small" onclick="document.getElementById('file-input').click()">
-                        <span style="font-size:16px;">📂</span> Add File
-                    </button>
+                    <button class="magic-btn-small" onclick="document.getElementById('file-input').click()">📂 Send File</button>
                 </div>
                 <input type="file" id="file-input" multiple>
                 <div id="transfer-list"></div>
@@ -825,806 +228,336 @@
         <div class="chat-area" id="chat-area">
             <div class="chat-header">
                 <div class="chat-user">
-                    <button class="firebase-glow-btn mobile-only" onclick="toggleSidebar()">📁</button>
-
-                    <div class="sound-toggle-btn" id="sound-toggle" onclick="toggleSoundMode()">
-                        🔔
-                    </div>
-
+                    <button class="mobile-only btn" style="background:none; font-size:20px; padding:0; margin-right:10px;" onclick="toggleSidebar()">📂</button>
                     <div>
                         <div style="font-weight:bold;">Peer</div>
                         <div style="font-size:11px; color:#666;" id="connection-status">Waiting...</div>
-                        <div class="typing-indicator" id="typing-indicator">Typing...</div>
                     </div>
-                </div>
-                
-                <div class="chat-actions">
-                    <button class="icon-btn" onclick="initScreenShare()" title="Share Screen (Desktop)">
-                        <svg viewBox="0 0 24 24">
-                            <path d="M20,3H4C2.897,3,2,3.897,2,5v11c0,1.103,0.897,2,2,2h4l-1.8,2.4l1.6,1.2l2.5-3.333h5.4l2.5,3.333l1.6-1.2L18,18h4 c1.103,0,2-0.897,2-2V5C24,3.897,23.103,3,22,3z M22,16H4V5h18V16z"></path>
-                        </svg>
-                    </button>
-
-                    <button class="icon-btn" onclick="initCall(true)" title="Video Call">
-                        <svg viewBox="0 0 24 24">
-                            <path d="M21.526,8.149C21.231,7.967,20.862,7.951,20.553,8.105l-3.266,1.634V6.5c0-1.654-1.346-3-3-3H4.5c-1.654,0-3,1.346-3,3 v11c0,1.654,1.346,3,3,3h9.787c1.654,0,3-1.346,3-3v-3.24l3.266,1.634c0.129,0.065,0.27,0.096,0.411,0.096 c0.187,0,0.373-0.055,0.534-0.16c0.295-0.191,0.472-0.522,0.472-0.875V9.024C21.999,8.671,21.821,8.34,21.526,8.149z"></path>
-                        </svg>
-                    </button>
-                    
-                    <button class="icon-btn" onclick="initCall(false)" title="Voice Call">
-                        <svg viewBox="0 0 24 24">
-                            <path d="M19.376,12.416L19.376,12.416c-0.865-0.421-2.091-0.908-3.52-1.328c-0.85-0.25-1.748,0.021-2.22,0.672 l-1.074,1.482c-0.198,0.273-0.575,0.369-0.876,0.219c-1.722-0.854-3.593-2.671-4.48-4.321c-0.158-0.294-0.076-0.658,0.188-0.862 l1.521-1.171c0.613-0.472,0.916-1.329,0.73-2.158c-0.347-1.547-0.741-2.887-1.096-3.811C8.254,0.349,7.469-0.163,6.583,0.038 L4.538,0.506C3.013,0.854,1.836,2.259,2.022,3.823c0.353,2.964,1.875,7.311,5.659,11.233c4.156,4.308,8.969,5.772,11.956,5.918 c1.564,0.076,2.915-1.157,3.167-2.695l0.36-2.193C23.36,15.155,22.759,14.062,19.376,12.416z"></path>
-                        </svg>
-                    </button>
                 </div>
             </div>
 
             <div class="messages" id="messages"></div>
 
-            <div class="reply-bar" id="reply-bar">
-                <div>
-                    <div style="color:var(--primary); font-weight:bold; font-size:10px;">Replying to...</div>
-                    <div id="reply-text-preview"></div>
-                </div>
-                <button onclick="cancelReply()" style="border:none; background:none; font-size:16px;">✕</button>
-            </div>
-
             <div class="input-area">
-                <!-- FEATURE 1: Universal Clipboard Button -->
-                <button class="icon-btn" onclick="sendClipboard()" title="Send Clipboard (Copy from this device to Peer)">
-                    📋
-                </button>
-
-                <button class="icon-btn" onclick="document.getElementById('img-input').click()">📷</button>
-
-                <div id="recording-box" class="recording-box">
-                    <span class="mic-active">🔴</span> Recording...
-                    <button class="icon-btn" style="color:var(--red); border:1px solid var(--red);" onclick="stopRecording(false)">🗑️</button>
-                </div>
-
+                <button class="btn" style="background:none; color:var(--secondary); padding:5px;" onclick="document.getElementById('img-input').click()">📷</button>
                 <input type="file" id="img-input" accept="image/*" style="display:none">
-                <input type="text" id="msg-input" placeholder="Type a message...">
-                
-                <button class="icon-btn" id="mic-btn" onmousedown="startRecording()" onmouseup="stopRecording(true)" ontouchstart="startRecording()" ontouchend="stopRecording(true)" title="Hold to Record">
-                    <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
-                </button>
-
-                <button class="send-btn" onmousedown="event.preventDefault()" onclick="sendText()">➤</button>
+                <input type="text" id="msg-input" placeholder="Message...">
+                <button class="send-btn" onclick="sendText()">➤</button>
             </div>
         </div>
     </div>
 
-    <!-- OVERLAYS REMAIN SAME (Lock, Permissions, Calls, Modals) -->
-    <!-- CONNECTION LOCK OVERLAY -->
-    <div class="connection-overlay" id="connection-overlay">
-        <div class="lock-animation">
-            <svg class="lock-svg" viewBox="0 0 100 100">
-                <path class="lock-shackle" d="M35 45 V35 C35 25 40 20 50 20 C60 20 65 25 65 35 V45" />
-                <rect class="lock-body" x="30" y="45" width="40" height="35" rx="5" />
-                <polyline class="checkmark" points="40,62 47,69 62,54" />
-            </svg>
-            <p style="color: white; font-weight: 600; margin-top: 15px; font-size: 18px;">End-to-End Encrypted</p>
-        </div>
-    </div>
-
-    <!-- PERMISSION GUIDE MODAL -->
-    <div class="perm-modal" id="perm-modal">
-        <div class="perm-card">
-            <div class="perm-icon">🔒</div>
-            <h3>Permission Blocked</h3>
-            <p style="color:#666; font-size:13px; margin-bottom:15px;">To make calls, please enable microphone/camera access.</p>
-            <div class="perm-step"><span>1</span><div>Tap the <b>Lock Icon</b> (🔒) or <b>Settings</b> in the URL bar.</div></div>
-            <div class="perm-step"><span>2</span><div>Select <b>Permissions</b> or <b>Site Settings</b>.</div></div>
-            <div class="perm-step"><span>3</span><div>Set Camera & Microphone to <b>Allow</b> or <b>Ask</b>.</div></div>
-            <button class="btn-perm-ok" onclick="document.getElementById('perm-modal').style.display='none'">Okay, I'll do it</button>
-        </div>
-    </div>
-
-    <div class="fullscreen-overlay" id="incoming-call-ui">
-        <div class="call-card">
-            <div class="call-avatar-lg"><img src="https://cdn-icons-png.flaticon.com/512/149/149071.png" width="100%"></div>
-            <h2 id="incoming-call-type">Incoming Call...</h2>
-            <p style="color:#aaa; margin-top:10px;">Peer is calling you</p>
-            <div class="call-actions">
-                <button class="call-btn btn-reject" onclick="rejectCall()">✖</button>
-                <button class="call-btn btn-accept" onclick="answerCall()">✔</button>
-            </div>
-        </div>
-    </div>
-
-    <div class="fullscreen-overlay" id="active-call-ui">
-        <div class="active-call-ui">
-            <!-- FEATURE 3: Drawing Canvas Overlay -->
-            <canvas id="draw-canvas"></canvas>
-
-            <video id="remote-video" autoplay playsinline></video>
-            <video id="local-video" autoplay playsinline muted></video>
-            <div class="call-controls-bar">
-                <button class="control-btn" id="btn-mute" onclick="toggleMic()">🎤</button>
-                <button class="control-btn btn-hangup" onclick="endCall()">📞</button>
-                <button class="control-btn" id="btn-cam" onclick="toggleCam()">📷</button>
-                
-                <!-- FEATURE 2: Remote Flashlight Button -->
-                <button class="control-btn" id="btn-flash" onclick="toggleRemoteFlash()" title="Toggle Peer's Flashlight">
-                    🔦
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal" id="img-modal">
-        <div class="modal-close" onclick="closeModal()">✕</div>
-        <img id="modal-img" src="">
-        <a id="modal-dl" href="#" class="modal-dl" download>Download</a>
-    </div>
-
-    <div id="scanner-overlay">
-        <div class="scanner-close" onclick="stopScanner()">✕</div>
+    <!-- SCANNER OVERLAY -->
+    <div id="scanner-overlay" class="overlay">
+        <div class="close-overlay" onclick="stopScanner()">✕</div>
         <div id="qr-reader"></div>
     </div>
 
+    <!-- IMAGE MODAL -->
+    <div id="img-modal" class="overlay" style="background:rgba(0,0,0,0.9);">
+        <div class="close-overlay" onclick="document.getElementById('img-modal').style.display='none'">✕</div>
+        <img id="modal-img" style="max-width:90%; max-height:80%;">
+        <a id="modal-dl" style="color:white; margin-top:20px; text-decoration:underline;" download>Download</a>
+    </div>
+
     <script>
-        let peer, conn, myId, isHost;
-        let activeCall = null, localStream = null;
-        let replyContext = null;
-        let fileQueue = [], activeTransfer = null, isTransferring = false;
-        let typingTimeout;
-        let callMode = 'ring'; // ring, vibrate, silent
-        let vibrateInterval;
+        let peer, conn, myId;
+        let localStream, activeCall;
+        let isSyncing = false;
+        let isTheaterMode = false;
 
-        // FEATURE VARS
-        let mediaRecorder;
-        let audioChunks = [];
-        let isRecording = false;
-        let flashEnabled = false;
-        let canvas, ctx;
-
+        // Init
         document.addEventListener('DOMContentLoaded', () => {
-            // Check if mobile to show/hide elements
-            if (window.innerWidth < 768) {
-                const hiddenEl = document.querySelector('.mobile-hidden');
-                if (hiddenEl) hiddenEl.style.display = 'none';
-            }
-
-            // Init Dark Mode
-            if(localStorage.getItem('theme') === 'dark') {
-                document.body.classList.add('dark-mode');
-            }
-
-            window.addEventListener('beforeunload', (e) => {
-                if (!isHost) { history.replaceState(null, null, window.location.pathname); }
-            });
+            if (window.innerWidth < 768) document.querySelector('.mobile-only').style.display = 'block';
+            if(localStorage.getItem('theme') === 'dark') document.body.classList.add('dark-mode');
             initApp();
-            initCanvas(); // Init drawing canvas
 
-            const msgInput = document.getElementById('msg-input');
-            msgInput.addEventListener('input', () => {
-                if (conn && conn.open) {
-                    conn.send({ type: 'typing', isTyping: true });
-                    clearTimeout(typingTimeout);
-                    typingTimeout = setTimeout(() => {
-                        if (conn && conn.open) conn.send({ type: 'typing', isTyping: false });
-                    }, 1000);
-                }
-            });
-
-            msgInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') { sendText(); }
-            });
-
-            document.getElementById('img-input').addEventListener('change', function () {
+            // Text Input
+            document.getElementById('msg-input').addEventListener('keypress', (e) => { if(e.key === 'Enter') sendText(); });
+            
+            // Image Input
+            document.getElementById('img-input').addEventListener('change', function() {
                 const file = this.files[0];
-                if (!file) return;
-                const reader = new FileReader();
-                reader.onload = function (e) {
-                    const msgId = Date.now();
-                    const base64 = e.target.result;
-                    if (conn && conn.open) conn.send({ type: 'image', content: base64, id: msgId });
-                    addImage(base64, 'sent', msgId);
-                };
-                reader.readAsDataURL(file);
+                if(file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const id = Date.now();
+                        if(conn) conn.send({type:'image', content:e.target.result, id:id});
+                        addImage(e.target.result, 'sent', id);
+                    };
+                    reader.readAsDataURL(file);
+                }
                 this.value = '';
             });
+
+            // Movie Player Sync Listeners
+            const vid = document.getElementById('movie-player');
+            vid.addEventListener('play', () => { if(conn && !isSyncing) conn.send({type:'sync', action:'play', time:vid.currentTime}); });
+            vid.addEventListener('pause', () => { if(conn && !isSyncing) conn.send({type:'sync', action:'pause', time:vid.currentTime}); });
+            vid.addEventListener('seeked', () => { if(conn && !isSyncing) conn.send({type:'sync', action:'seek', time:vid.currentTime}); });
+            
+            // Drag Logic for Peer Video
+            makeDraggable(document.getElementById('peer-video-container'));
         });
-
-        // --- FEATURE 3: LIVE DRAWING LOGIC ---
-        function initCanvas() {
-            canvas = document.getElementById('draw-canvas');
-            ctx = canvas.getContext('2d');
-            
-            // Resize canvas to match window
-            const resize = () => {
-                canvas.width = window.innerWidth;
-                canvas.height = window.innerHeight;
-            };
-            window.addEventListener('resize', resize);
-            resize();
-
-            let isDrawing = false;
-
-            // Mouse/Touch Events
-            const startDraw = (e) => { isDrawing = true; sendDrawData(e, 'start'); };
-            const moveDraw = (e) => { if(isDrawing) { drawOnCanvas(getCoords(e), '#ff0000', true); sendDrawData(e, 'move'); } };
-            const endDraw = () => { isDrawing = false; };
-
-            canvas.addEventListener('mousedown', startDraw);
-            canvas.addEventListener('mousemove', moveDraw);
-            canvas.addEventListener('mouseup', endDraw);
-            
-            canvas.addEventListener('touchstart', (e) => { startDraw(e.touches[0]); });
-            canvas.addEventListener('touchmove', (e) => { e.preventDefault(); moveDraw(e.touches[0]); });
-            canvas.addEventListener('touchend', endDraw);
-        }
-
-        function getCoords(e) {
-            const rect = canvas.getBoundingClientRect();
-            // Normalize coordinates (0.0 to 1.0) for different screen sizes
-            return {
-                x: (e.clientX - rect.left) / canvas.width,
-                y: (e.clientY - rect.top) / canvas.height
-            };
-        }
-
-        function sendDrawData(e, action) {
-            if(conn && conn.open) {
-                conn.send({ type: 'draw', action: action, coords: getCoords(e) });
-            }
-        }
-
-        function drawOnCanvas(coords, color, isLocal) {
-            const x = coords.x * canvas.width;
-            const y = coords.y * canvas.height;
-            
-            ctx.beginPath();
-            ctx.arc(x, y, 10, 0, 2 * Math.PI, false);
-            ctx.fillStyle = color;
-            ctx.fill();
-
-            // Fade out effect
-            setTimeout(() => {
-                ctx.globalCompositeOperation = "destination-out";
-                ctx.beginPath();
-                ctx.arc(x, y, 11, 0, 2 * Math.PI, false);
-                ctx.fill();
-                ctx.globalCompositeOperation = "source-over";
-            }, 2000);
-        }
-        // --------------------------------------
-
-        // --- FEATURE 1: UNIVERSAL CLIPBOARD ---
-        async function sendClipboard() {
-            try {
-                const text = await navigator.clipboard.readText();
-                if(text) {
-                    if(conn && conn.open) {
-                        conn.send({ type: 'clipboard', content: text });
-                        alert("Clipboard sent!");
-                    } else {
-                        alert("Not connected!");
-                    }
-                } else {
-                    alert("Clipboard is empty or blocked.");
-                }
-            } catch(e) {
-                alert("Permission denied or clipboard empty. Click anywhere on page first.");
-            }
-        }
-        // --------------------------------------
 
         function toggleTheme() {
             document.body.classList.toggle('dark-mode');
             localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
         }
+        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('hidden'); }
 
-        function toggleSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            sidebar.classList.toggle('hidden');
-        }
-
-        function toggleSoundMode() {
-            const btn = document.getElementById('sound-toggle');
-            if (callMode === 'ring') {
-                callMode = 'vibrate';
-                btn.innerText = '📳';
-                btn.className = 'sound-toggle-btn sound-mode-vibrate';
-            } else if (callMode === 'vibrate') {
-                callMode = 'silent';
-                btn.innerText = '🔕';
-                btn.className = 'sound-toggle-btn sound-mode-silent';
-            } else {
-                callMode = 'ring';
-                btn.innerText = '🔔';
-                btn.className = 'sound-toggle-btn sound-mode-ring';
-            }
-        }
-
-        function playCallAlert() {
-            if (callMode === 'silent') return;
-            if (callMode === 'ring') {
-                const audio = document.getElementById('ringtone');
-                audio.currentTime = 0;
-                audio.play().catch(e => console.log("Audio play failed", e));
-            }
-            if (callMode === 'ring' || callMode === 'vibrate') {
-                if (navigator.vibrate) {
-                    vibrateInterval = setInterval(() => { navigator.vibrate([500, 200, 500]); }, 1500);
-                }
-            }
-        }
-
-        function stopCallAlert() {
-            const audio = document.getElementById('ringtone');
-            audio.pause();
-            audio.currentTime = 0;
-            if (vibrateInterval) clearInterval(vibrateInterval);
-            if (navigator.vibrate) navigator.vibrate(0);
-        }
-
+        // --- PEERJS SETUP ---
         function initApp() {
             const hash = window.location.hash.substring(1);
-            isHost = !hash;
-            const peerConfig = {
-                debug: 2,
-                config: {
-                    iceServers: [
-                        { urls: 'stun:stun.l.google.com:19302' },
-                        { urls: 'stun:global.stun.twilio.com:3478' }
-                    ]
-                }
-            };
+            const peerConfig = { debug: 1, config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:global.stun.twilio.com:3478' }] } };
             peer = new Peer(undefined, peerConfig);
+
             peer.on('open', (id) => {
                 myId = id;
-                if (isHost) {
+                if (!hash) { // Host
                     new QRCode(document.getElementById('qrcode'), { text: window.location.href + '#' + id, width: 180, height: 180 });
-                } else {
+                } else { // Joiner
                     document.getElementById('connect-panel').style.display = 'none';
                     document.getElementById('connection-status').innerText = 'Connecting...';
-                    connectToPeer(hash);
-                    if (window.innerWidth < 768) document.getElementById('sidebar').classList.add('hidden');
+                    setTimeout(() => {
+                        conn = peer.connect(hash);
+                        setupConnection(conn);
+                    }, 1000);
+                    if(window.innerWidth < 768) toggleSidebar();
                 }
             });
-            peer.on('connection', (c) => setupConnection(c));
-            peer.on('call', (call) => {
-                const isScreen = call.metadata && call.metadata.type === 'screen';
-                document.getElementById('incoming-call-ui').style.display = 'flex';
-                document.getElementById('incoming-call-type').innerText = isScreen ? 'Incoming Screen Share...' : (call.metadata?.type === 'video' ? 'Incoming Video Call...' : 'Incoming Voice Call...');
-                window.pendingCall = call;
-                playCallAlert();
-            });
-            peer.on('error', (err) => {
-                console.error(err);
-                if (!isHost && (err.type === 'peer-unavailable' || err.type === 'network')) {
-                    alert("Connection failed.");
-                    window.location.hash = ''; window.location.reload();
-                }
-            });
-        }
 
-        function connectToPeer(id) {
-            setTimeout(() => { setupConnection(peer.connect(id, { reliable: true })); }, 1000);
+            peer.on('connection', (c) => { setupConnection(c); });
+            
+            // Handle Incoming Calls (Auto-answer for seamless experience)
+            peer.on('call', (call) => {
+                navigator.mediaDevices.getUserMedia({video:true, audio:true}).then(stream => {
+                    localStream = stream;
+                    document.getElementById('self-video').srcObject = stream;
+                    call.answer(stream);
+                    activeCall = call;
+                    call.on('stream', (remoteStream) => {
+                        document.getElementById('peer-video').srcObject = remoteStream;
+                    });
+                }).catch(e => console.error("Call error", e));
+            });
         }
 
         function setupConnection(c) {
             conn = c;
             conn.on('open', () => {
-                const overlay = document.getElementById('connection-overlay');
-                overlay.style.display = 'flex';
-                setTimeout(() => { overlay.style.display = 'none'; }, 2500);
                 document.getElementById('status-badge').innerText = 'Connected';
                 document.getElementById('status-badge').style.background = 'var(--green)';
                 document.getElementById('connect-panel').style.display = 'none';
                 document.getElementById('connection-status').innerText = 'Online';
-                if (window.innerWidth < 768) document.getElementById('sidebar').classList.add('hidden');
+                if(window.innerWidth < 768) document.getElementById('sidebar').classList.add('hidden');
             });
             conn.on('data', handleData);
-            conn.on('close', () => { alert('Disconnected'); window.location.hash = ''; window.location.reload(); });
-            conn.on('error', (err) => console.error("Conn Error", err));
+            conn.on('close', () => alert("Peer disconnected"));
         }
 
         function handleData(data) {
-            switch (data.type) {
-                case 'text': addMessage(data.content, 'received', data.reply); conn.send({ type: 'ack', id: data.id }); break;
-                case 'image': addImage(data.content, 'received', data.id); conn.send({ type: 'ack', id: data.id }); break;
-                case 'audio': addAudioMsg(data.content, 'received', data.id); conn.send({ type: 'ack', id: data.id }); break;
-                case 'typing':
-                    const ind = document.getElementById('typing-indicator');
-                    ind.style.display = data.isTyping ? 'block' : 'none';
-                    break;
-                case 'ack': markRead(data.id); break;
-                case 'dl-notify': markDownloaded(data.id); break;
+            switch(data.type) {
+                case 'text': addMessage(data.content, 'received'); document.getElementById('msg-sound').play(); break;
+                case 'image': addImage(data.content, 'received', data.id); document.getElementById('msg-sound').play(); break;
+                case 'sync': handleSync(data); break;
                 case 'file-meta': startReceivingFile(data); break;
                 case 'file-chunk': processFileChunk(data); break;
-                case 'file-cancel': handleFileCancel(data.fileId); break;
-                case 'call-rejected': alert('Call Rejected'); endCallUI(); break;
-                case 'call-end': endCallUI(); break;
-                
-                // NEW FEATURE HANDLERS
-                case 'clipboard':
-                    // Auto Copy if possible, else Prompt
-                    navigator.clipboard.writeText(data.content).then(() => {
-                        alert("📋 Copied from Peer: " + data.content);
-                    }).catch(err => {
-                        prompt("📋 Peer sent clipboard data (Copy manually):", data.content);
-                    });
-                    break;
-                case 'toggle-flash':
-                    applyFlashlight();
-                    break;
-                case 'draw':
-                    drawOnCanvas(data.coords, '#00ff00', false); // Green for remote
-                    break;
             }
         }
 
-        async function shareQRCode() {
-            const canvas = document.querySelector('#qrcode canvas');
-            const img = document.querySelector('#qrcode img');
-            let url;
-            if (canvas) url = canvas.toDataURL();
-            else if (img) url = img.src;
-            else return;
-
-            try {
-                const blob = await (await fetch(url)).blob();
-                const file = new File([blob], "qr.png", { type: "image/png" });
-                if (navigator.share) {
-                    navigator.share({ files: [file], url: window.location.href + '#' + myId }).catch(err => console.log("Share cancelled"));
-                } else { alert("Share not supported"); }
-            } catch (e) { console.error("Error sharing QR", e); }
-        }
-
-        function sendText() {
-            const input = document.getElementById('msg-input');
-            const val = input.value.trim();
-            if (!val) return;
-            if (!conn || !conn.open) { alert("Not connected!"); return; }
-            const id = Date.now();
-            conn.send({ type: 'text', content: val, id: id, reply: replyContext });
-            addMessage(val, 'sent', replyContext, id);
-            input.value = '';
-            cancelReply();
-            input.focus();
-        }
-
-        async function startRecording() {
-            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return alert("Microphone not supported");
+        // --- WATCH PARTY LOGIC ---
+        function startWatchParty(input) {
+            const file = input.files[0];
+            if(!file) return;
+            const url = URL.createObjectURL(file);
+            const vid = document.getElementById('movie-player');
+            vid.src = url;
             
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                mediaRecorder = new MediaRecorder(stream);
-                audioChunks = [];
-                isRecording = true;
+            document.getElementById('theater-mode').style.display = 'flex';
+            isTheaterMode = true;
+            
+            // Auto-initiate call for "Always On" experience
+            if(conn && !activeCall) {
+                startCall();
+            }
+            alert("Ensure your partner selects the SAME file!");
+        }
 
-                document.getElementById('msg-input').style.display = 'none';
-                document.getElementById('recording-box').style.display = 'flex';
+        function exitTheater() {
+            document.getElementById('theater-mode').style.display = 'none';
+            document.getElementById('movie-player').pause();
+            isTheaterMode = false;
+            // Optional: End call on exit? User said "bich me baat kar sake", implying call is tied to movie.
+            // Keeping call active is better UX, but let's provide manual end.
+        }
 
-                mediaRecorder.addEventListener("dataavailable", event => {
-                    audioChunks.push(event.data);
+        function handleSync(data) {
+            const vid = document.getElementById('movie-player');
+            isSyncing = true;
+            if(Math.abs(vid.currentTime - data.time) > 0.5) vid.currentTime = data.time;
+            if(data.action === 'play') vid.play();
+            else if(data.action === 'pause') vid.pause();
+            setTimeout(() => isSyncing = false, 500);
+        }
+
+        // --- CALL LOGIC (Seamless) ---
+        function startCall() {
+            navigator.mediaDevices.getUserMedia({video:true, audio:true}).then(stream => {
+                localStream = stream;
+                document.getElementById('self-video').srcObject = stream;
+                const call = peer.call(conn.peer, stream);
+                activeCall = call;
+                call.on('stream', (remoteStream) => {
+                    document.getElementById('peer-video').srcObject = remoteStream;
                 });
+            }).catch(e => {
+                console.error("Mic/Cam Error", e);
+                alert("Could not access Camera/Mic. Please allow permissions.");
+            });
+        }
 
-                mediaRecorder.start();
-            } catch(e) {
-                console.error("Mic Error:", e);
-                alert("Cannot access microphone. Please check permissions.");
+        function toggleMic() {
+            if(localStream) {
+                const track = localStream.getAudioTracks()[0];
+                track.enabled = !track.enabled;
+                document.getElementById('btn-mic').classList.toggle('danger');
+                document.getElementById('btn-mic').innerText = track.enabled ? '🎤' : '🔇';
+            } else {
+                startCall(); // If not started, start it
             }
         }
 
-        function stopRecording(shouldSend) {
-            if (!mediaRecorder || !isRecording) return;
-            isRecording = false;
-
-            mediaRecorder.addEventListener("stop", () => {
-                document.getElementById('msg-input').style.display = 'block';
-                document.getElementById('recording-box').style.display = 'none';
-                mediaRecorder.stream.getTracks().forEach(track => track.stop());
-
-                if (shouldSend) {
-                    const audioBlob = new Blob(audioChunks, { type: 'audio/mp3' });
-                    const reader = new FileReader();
-                    reader.onload = () => {
-                        const base64Audio = reader.result;
-                        const id = Date.now();
-                        if (conn && conn.open) {
-                            conn.send({ type: 'audio', content: base64Audio, id: id });
-                            addAudioMsg(base64Audio, 'sent', id);
-                        }
-                    };
-                    reader.readAsDataURL(audioBlob);
-                }
-            });
-
-            mediaRecorder.stop();
+        function toggleCam() {
+            if(localStream) {
+                const track = localStream.getVideoTracks()[0];
+                track.enabled = !track.enabled;
+                document.getElementById('btn-cam').classList.toggle('danger');
+                // Hide self preview if cam off
+                document.getElementById('self-video').style.opacity = track.enabled ? '1' : '0';
+            } else {
+                startCall();
+            }
         }
 
-        function addAudioMsg(src, type, id) {
-            const div = document.createElement('div');
-            div.className = `msg ${type}`; div.id = `msg-${id}`;
-            div.innerHTML = `
-                <div class="audio-msg">
-                    <span style="font-size:20px;">🎤</span>
-                    <audio controls src="${src}"></audio>
-                </div>
-                <div class="msg-time">${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} ${type === 'sent' ? '<span class="double-tick">✓</span>' : ''}</div>`;
-            document.getElementById('messages').appendChild(div);
-            scrollToBottom();
-        }
-
-        function addMessage(text, type, reply, id) {
-            const div = document.createElement('div');
-            div.className = `msg ${type}`; div.id = `msg-${id}`;
-            let html = reply ? `<div class="msg-reply-preview">${reply.text.substring(0, 50)}...</div>` : '';
-            html += `${text}<div class="msg-time">${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} ${type === 'sent' ? '<span class="double-tick">✓</span>' : ''}</div><div class="reply-btn" onclick="setReply('${text.replace(/'/g, "\\'")}')">↩</div>`;
-            div.innerHTML = html;
-            document.getElementById('messages').appendChild(div);
-            scrollToBottom();
-        }
-
-        function addImage(src, type, id) {
-            const div = document.createElement('div');
-            div.className = `msg ${type}`; div.id = `msg-${id}`;
-            div.innerHTML = `<img src="${src}" onclick="openModal(this.src, '${type}', ${id})"><div class="msg-time">${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} ${type === 'sent' ? '<span class="double-tick">✓</span>' : ''}</div>${type === 'sent' ? '<div class="download-indicator" style="font-size:10px; display:none;">Downloaded by peer</div>' : ''}`;
-            document.getElementById('messages').appendChild(div);
-            scrollToBottom();
-        }
-
-        document.getElementById('file-input').onchange = function () {
-            for (let f of this.files) {
+        // --- FILE TRANSFER ---
+        let fileQueue = [], activeTransfer = null, isTransferring = false, receiving = {};
+        document.getElementById('file-input').onchange = function() {
+            for(let f of this.files) {
                 const id = Date.now() + Math.random().toString(36).substr(2, 5);
-                fileQueue.push({ file: f, id: id });
+                fileQueue.push({file:f, id:id});
                 createFileUI(id, f.name, 'Sending');
             }
-            processFileQueue(); this.value = '';
+            processFileQueue();
+            this.value = '';
         };
 
         function createFileUI(id, name, type) {
-            const div = document.createElement('div');
-            div.className = 'transfer-item'; div.id = `file-${id}`;
-            div.innerHTML = `<div class="t-info"><span class="t-name">${name}</span><button class="btn-cancel" onclick="cancelTransfer('${id}', '${type}')">✕</button></div><div class="t-bar-bg"><div class="t-bar-fill" id="bar-${id}"></div></div><div class="t-meta"><span id="prog-${id}">0%</span><span id="eta-${id}">Calculating...</span></div>`;
+            const div = document.createElement('div'); div.className='transfer-item'; div.id=`file-${id}`;
+            div.innerHTML = `<div class="t-info"><span class="t-name">${name}</span></div><div class="t-bar-bg"><div class="t-bar-fill" id="bar-${id}"></div></div>`;
             document.getElementById('transfer-list').prepend(div);
         }
 
         function processFileQueue() {
-            if (isTransferring || fileQueue.length === 0) return;
-            if (!conn || !conn.open) return;
-            const item = fileQueue.shift();
-            activeTransfer = item; isTransferring = true;
-            try {
-                conn.send({ type: 'file-meta', fileId: item.id, name: item.file.name, size: item.file.size });
-                const reader = new FileReader();
-                let offset = 0; let start = Date.now();
-                reader.onload = (e) => {
-                    if (!activeTransfer) return;
-                    if (conn && conn.open) {
-                        conn.send({ type: 'file-chunk', fileId: item.id, data: e.target.result });
-                        offset += e.target.result.byteLength;
-                        updateProgress(item.id, offset, item.file.size, start);
-                        if (offset < item.file.size) readNext();
-                        else { isTransferring = false; setTimeout(processFileQueue, 50); }
-                    } else { isTransferring = false; }
-                };
-                const readNext = () => reader.readAsArrayBuffer(item.file.slice(offset, offset + 16384));
-                readNext();
-            } catch(e) { console.error("Transfer failed", e); isTransferring = false; }
+            if(isTransferring || fileQueue.length===0 || !conn) return;
+            const item = fileQueue.shift(); activeTransfer = item; isTransferring = true;
+            conn.send({type:'file-meta', fileId:item.id, name:item.file.name, size:item.file.size});
+            const reader = new FileReader(); let offset=0;
+            reader.onload = (e) => {
+                if(conn) {
+                    conn.send({type:'file-chunk', fileId:item.id, data:e.target.result});
+                    offset += e.target.result.byteLength;
+                    document.getElementById(`bar-${item.id}`).style.width = Math.round((offset/item.file.size)*100)+'%';
+                    if(offset < item.file.size) reader.readAsArrayBuffer(item.file.slice(offset, offset+16384));
+                    else { isTransferring=false; setTimeout(processFileQueue, 50); }
+                }
+            };
+            reader.readAsArrayBuffer(item.file.slice(0, 16384));
         }
 
-        let receiving = {};
-        function startReceivingFile(meta) {
-            receiving[meta.fileId] = { name: meta.name, size: meta.size, received: 0, buffer: [], start: Date.now() };
-            createFileUI(meta.fileId, meta.name, 'Receiving');
-        }
+        function startReceivingFile(meta) { receiving[meta.fileId] = {name:meta.name, size:meta.size, received:0, buffer:[]}; createFileUI(meta.fileId, meta.name, 'Receiving'); }
         function processFileChunk(data) {
-            const f = receiving[data.fileId];
-            if (!f) return;
-            f.buffer.push(data.data); f.received += data.data.byteLength;
-            updateProgress(data.fileId, f.received, f.size, f.start);
-            if (f.received >= f.size) {
-                const url = URL.createObjectURL(new Blob(f.buffer));
-                const a = document.createElement('a'); a.href = url; a.download = f.name;
-                document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            const f = receiving[data.fileId]; if(!f) return;
+            f.buffer.push(data.data); f.received+=data.data.byteLength;
+            document.getElementById(`bar-${data.fileId}`).style.width = Math.round((f.received/f.size)*100)+'%';
+            if(f.received >= f.size) {
+                const blob = new Blob(f.buffer); const url = URL.createObjectURL(blob);
+                const a = document.createElement('a'); a.href=url; a.download=f.name; document.body.appendChild(a); a.click(); document.body.removeChild(a);
                 delete receiving[data.fileId];
-                document.getElementById(`eta-${data.fileId}`).innerText = 'Done';
-            }
-        }
-        function updateProgress(id, cur, tot, start) {
-            const pct = Math.round((cur / tot) * 100);
-            const bar = document.getElementById(`bar-${id}`);
-            const txt = document.getElementById(`prog-${id}`);
-            const eta = document.getElementById(`eta-${id}`);
-            if (bar) bar.style.width = pct + '%';
-            if (txt) txt.innerText = pct + '%';
-            const elapsed = (Date.now() - start) / 1000;
-            const rate = cur / elapsed;
-            const left = (tot - cur) / rate;
-            if (eta && isFinite(left)) eta.innerText = left < 1 ? 'Done' : formatTime(left) + ' left';
-        }
-        function formatTime(seconds) {
-            const h = Math.floor(seconds / 3600);
-            const m = Math.floor((seconds % 3600) / 60);
-            const s = Math.floor(seconds % 60);
-            return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-        }
-        function cancelTransfer(id, type) {
-            document.getElementById(`file-${id}`).remove();
-            if (conn && conn.open) conn.send({ type: 'file-cancel', fileId: id });
-            if (type === 'Sending') {
-                if (activeTransfer?.id === id) { activeTransfer = null; isTransferring = false; processFileQueue(); }
-                else fileQueue = fileQueue.filter(i => i.id !== id);
-            } else delete receiving[id];
-        }
-        function handleFileCancel(id) {
-            const el = document.getElementById(`file-${id}`);
-            if (el) el.innerHTML = '<span style="color:red">Cancelled by peer</span>';
-            if (activeTransfer?.id === id) { activeTransfer = null; isTransferring = false; processFileQueue(); }
-            delete receiving[id];
-        }
-
-        function scrollToBottom() { document.getElementById('messages').scrollTop = 1000000; }
-        function markRead(id) { const el = document.querySelector(`#msg-${id} .double-tick`); if (el) el.innerText = '✓✓'; }
-        function markDownloaded(id) { const el = document.querySelector(`#msg-${id} .download-indicator`); if (el) el.style.display = 'block'; }
-        function openModal(src, type, id) {
-            document.getElementById('img-modal').style.display = 'flex'; document.getElementById('modal-img').src = src;
-            const dl = document.getElementById('modal-dl');
-            if (type === 'received') { dl.style.display = 'block'; dl.href = src; dl.onclick = () => conn.send({ type: 'dl-notify', id: id }); }
-            else dl.style.display = 'none';
-        }
-        function closeModal() { document.getElementById('img-modal').style.display = 'none'; }
-        function setReply(t) { replyContext = { text: t }; document.getElementById('reply-bar').style.display = 'flex'; document.getElementById('reply-text-preview').innerText = t.substring(0, 50) + '...'; }
-        function cancelReply() { replyContext = null; document.getElementById('reply-bar').style.display = 'none'; }
-
-        // MEDIA & CALLING
-        const mediaConstraints = { audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }, video: { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 }, facingMode: "user" } };
-
-        function checkMediaPermissions(vid) {
-            return new Promise((resolve, reject) => {
-                const constraints = vid ? mediaConstraints : { audio: true, video: false };
-                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                    alert("Browser not supported"); reject("Not supported"); return;
-                }
-                navigator.mediaDevices.getUserMedia(constraints)
-                .then(stream => resolve(stream))
-                .catch(err => {
-                    if(err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') document.getElementById('perm-modal').style.display = 'flex';
-                    else alert("Error: " + err.message);
-                    reject(err);
-                });
-            });
-        }
-
-        // FEATURE 2: REMOTE FLASHLIGHT LOGIC
-        function toggleRemoteFlash() {
-            if(conn && conn.open) {
-                conn.send({ type: 'toggle-flash' });
             }
         }
 
-        function applyFlashlight() {
-            if(localStream) {
-                const track = localStream.getVideoTracks()[0];
-                if(track) {
-                    flashEnabled = !flashEnabled;
-                    track.applyConstraints({
-                        advanced: [{ torch: flashEnabled }]
-                    }).catch(err => console.log("Flashlight not supported on this device/camera", err));
-                }
-            }
+        // --- CHAT UI ---
+        function sendText() {
+            const val = document.getElementById('msg-input').value.trim();
+            if(!val || !conn) return;
+            conn.send({type:'text', content:val});
+            addMessage(val, 'sent');
+            document.getElementById('msg-input').value = '';
         }
-
-        function initScreenShare() {
-             if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
-                alert("Screen sharing is not supported on this device/browser (usually works best on Desktop Chrome/Edge).");
-                return;
-            }
-
-            navigator.mediaDevices.getDisplayMedia({ video: true, audio: true })
-            .then(stream => {
-                localStream = stream;
-                document.getElementById('active-call-ui').style.display = 'flex';
-                document.getElementById('local-video').srcObject = stream;
-                
-                const call = peer.call(conn.peer, stream, { metadata: { type: 'screen' } });
-                handleCall(call);
-
-                stream.getVideoTracks()[0].onended = function () {
-                    endCall();
-                };
-            })
-            .catch(err => {
-                console.log("Screen share cancelled", err);
-            });
+        function addMessage(text, type) {
+            const div = document.createElement('div'); div.className = `msg ${type}`;
+            div.innerText = text;
+            document.getElementById('messages').appendChild(div);
+            document.getElementById('messages').scrollTop = 100000;
         }
-
-        function initCall(vid) {
-            checkMediaPermissions(vid).then(s => {
-                localStream = s;
-                document.getElementById('active-call-ui').style.display = 'flex';
-                document.getElementById('local-video').srcObject = s;
-                const call = peer.call(conn.peer, s, { metadata: { type: vid ? 'video' : 'audio' } });
-                handleCall(call);
-            }).catch(e => console.log("Call init aborted"));
+        function addImage(src, type, id) {
+            const div = document.createElement('div'); div.className = `msg ${type}`;
+            div.innerHTML = `<img src="${src}" onclick="openModal('${src}')">`;
+            document.getElementById('messages').appendChild(div);
+            document.getElementById('messages').scrollTop = 100000;
         }
+        function openModal(src) { document.getElementById('img-modal').style.display='flex'; document.getElementById('modal-img').src=src; document.getElementById('modal-dl').href=src; }
 
-        function answerCall() {
-            stopCallAlert();
-            document.getElementById('incoming-call-ui').style.display = 'none';
-            const isVideoCall = window.pendingCall.metadata.type === 'video';
-            const constraints = (isVideoCall) ? mediaConstraints : { audio: true, video: false };
-
-            navigator.mediaDevices.getUserMedia(constraints).then(s => {
-                localStream = s;
-                document.getElementById('active-call-ui').style.display = 'flex';
-                document.getElementById('local-video').srcObject = s;
-                window.pendingCall.answer(s);
-                handleCall(window.pendingCall);
-            }).catch(e => {
-                console.error("Error answering", e);
-            });
-        }
-
-        function handleCall(call) {
-            activeCall = call;
-            call.on('stream', r => { document.getElementById('remote-video').srcObject = r; });
-            call.on('close', endCallUI);
-        }
-        
-        function endCall() { 
-            if(conn && conn.open) conn.send({ type: 'call-end' }); 
-            if (activeCall) activeCall.close();
-            endCallUI(); 
-        }
-
-        function endCallUI() {
-            stopCallAlert();
-            document.getElementById('active-call-ui').style.display = 'none';
-            document.getElementById('incoming-call-ui').style.display = 'none';
-            if (localStream) {
-                localStream.getTracks().forEach(track => track.stop());
-                localStream = null;
-            }
-            activeCall = null;
-            window.pendingCall = null;
-            
-            // Clear canvas
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-        }
-
-        function toggleMic() { const t = localStream.getAudioTracks()[0]; t.enabled = !t.enabled; document.getElementById('btn-mute').classList.toggle('off'); }
-        function toggleCam() { 
-            const t = localStream.getVideoTracks()[0]; 
-            if (t) { t.enabled = !t.enabled; document.getElementById('btn-cam').classList.toggle('off'); } 
-        }
-        
-        function rejectCall() {
-            stopCallAlert();
-            if(conn && conn.open) conn.send({ type: 'call-rejected' });
-            document.getElementById('incoming-call-ui').style.display = 'none'; 
-            if(window.pendingCall) window.pendingCall.close();
-            window.pendingCall = null;
-        }
-
+        // --- QR SCANNER ---
         let qrScanner;
         function startScanner() {
             document.getElementById('scanner-overlay').style.display = 'flex';
-            if (!qrScanner) qrScanner = new Html5Qrcode("qr-reader");
-            const qrBoxSize = Math.min(window.innerWidth, window.innerHeight) * 0.9;
-            qrScanner.start({ facingMode: "environment" }, { fps: 30, qrbox: { width: qrBoxSize, height: qrBoxSize }, aspectRatio: 1.0 }, t => {
+            if(!qrScanner) qrScanner = new Html5Qrcode("qr-reader");
+            qrScanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, t => {
                 stopScanner();
-                try {
-                    let id = '';
-                    if(t.includes('#')) id = t.split('#')[1]; else id = t;
-                    if (id && id.length > 0) { window.location.hash = id; window.location.reload(); } else { alert("Invalid QR Code"); }
-                } catch(e) { alert("Error parsing QR"); }
-            }).catch(err => {
-                console.error("Error starting scanner", err);
-                alert("Could not start camera. Please ensure you are on HTTPS and have granted permissions.");
-                document.getElementById('scanner-overlay').style.display = 'none';
-            });
+                let id = t.includes('#') ? t.split('#')[1] : t;
+                if(id) { window.location.hash = id; window.location.reload(); }
+            }).catch(e => alert("Camera blocked"));
+        }
+        function stopScanner() { 
+            if(qrScanner) qrScanner.stop().then(()=>document.getElementById('scanner-overlay').style.display='none');
+            else document.getElementById('scanner-overlay').style.display='none';
+        }
+        function shareQRCode() {
+            const canvas = document.querySelector('#qrcode canvas');
+            if(canvas) canvas.toBlob(blob => navigator.share({files:[new File([blob],"qr.png",{type:"image/png"})]}).catch(e=>{}));
         }
 
-        function stopScanner() { 
-            if (qrScanner && qrScanner.isScanning) {
-                qrScanner.stop().then(() => { qrScanner.clear(); document.getElementById('scanner-overlay').style.display = 'none'; qrScanner = null; }).catch(err => { console.error("Failed to stop scanner", err); document.getElementById('scanner-overlay').style.display = 'none'; });
-            } else { document.getElementById('scanner-overlay').style.display = 'none'; }
+        // --- UTILS ---
+        function makeDraggable(elmnt) {
+            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+            elmnt.onmousedown = dragMouseDown;
+            elmnt.ontouchstart = dragTouchStart;
+
+            function dragMouseDown(e) {
+                e.preventDefault(); pos3 = e.clientX; pos4 = e.clientY;
+                document.onmouseup = closeDragElement;
+                document.onmousemove = elementDrag;
+            }
+            function elementDrag(e) {
+                e.preventDefault(); pos1 = pos3 - e.clientX; pos2 = pos4 - e.clientY;
+                pos3 = e.clientX; pos4 = e.clientY;
+                elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
+                elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+            }
+            function dragTouchStart(e) {
+                pos3 = e.touches[0].clientX; pos4 = e.touches[0].clientY;
+                document.ontouchend = closeDragElement;
+                document.ontouchmove = elementTouchDrag;
+            }
+            function elementTouchDrag(e) {
+                pos1 = pos3 - e.touches[0].clientX; pos2 = pos4 - e.touches[0].clientY;
+                pos3 = e.touches[0].clientX; pos4 = e.touches[0].clientY;
+                elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
+                elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+            }
+            function closeDragElement() { document.onmouseup = null; document.onmousemove = null; document.ontouchend = null; document.ontouchmove = null; }
         }
     </script>
 </body>
