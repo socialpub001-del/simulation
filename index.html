@@ -1701,10 +1701,10 @@
             }
             
             /* MODIFIED SECTION: SCANNER CONFIG
-               1. Created dynamicqrBoxSize to be 70% of screen min-dimension (Solves "too close" issue).
-               2. Added aspectRatio: 1.0 to reduce wide-angle distortion.
+               Updated qrBoxSize to 0.9 (90% of screen) to match Google Lens size.
+               This allows scanning from further away.
             */
-            const qrBoxSize = Math.min(window.innerWidth, window.innerHeight) * 0.7;
+            const qrBoxSize = Math.min(window.innerWidth, window.innerHeight) * 0.9;
 
             // FIX: Added catch block for camera errors
             qrScanner.start(
