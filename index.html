@@ -1,644 +1,1761 @@
  <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Galactic Defender: Save Earth!</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>QR Send - Pro Ultimate</title>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
     <style>
-        body { margin: 0; overflow: hidden; background-color: #000; font-family: 'Comic Sans MS', 'Chalkboard SE', sans-serif; color: white; user-select: none; }
-        #canvas-container { width: 100vw; height: 100vh; cursor: crosshair; }
-        
-        /* Game HUD */
-        #hud {
-            position: absolute;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            text-align: center;
-            pointer-events: none;
-            z-index: 10;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', sans-serif;
+            -webkit-tap-highlight-color: transparent;
         }
 
-        #score-board {
-            font-size: 32px;
-            font-weight: bold;
-            color: #ffff00;
-            text-shadow: 2px 2px 0 #000;
+        :root {
+            --primary: #075e54;
+            --secondary: #128c7e;
+            --light: #dcf8c6;
+            --dark: #1f2c34;
+            --bg: #e5ddd5;
+            --white: #ffffff;
+            --red: #d32f2f;
+            --green: #25d366;
         }
 
-        #health-bar-container {
-            width: 300px;
-            height: 20px;
-            background: #444;
-            border: 2px solid #fff;
-            border-radius: 10px;
-            margin-top: 10px;
+        body {
+            background: var(--bg);
+            height: 100dvh;
+            display: flex;
+            justify-content: center;
             overflow: hidden;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 1000px;
+            height: 100%;
+            background: var(--white);
+            display: flex;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
             position: relative;
         }
 
-        #health-bar {
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, #ff3333, #33ff33);
-            transition: width 0.2s;
+        /* SIDEBAR */
+        .sidebar {
+            width: 350px;
+            border-right: 1px solid #ddd;
+            display: flex;
+            flex-direction: column;
+            background: #f0f2f5;
+            transition: transform 0.3s ease;
+            z-index: 100;
         }
 
-        #health-text {
-            position: absolute;
-            width: 100%;
-            text-align: center;
-            top: 0;
-            line-height: 20px;
-            font-size: 14px;
-            color: black;
-            font-weight: bold;
-        }
-
-        /* Powerup Controls */
-        #controls {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            width: 200px;
-            background: rgba(0, 0, 0, 0.8);
+        .header {
             padding: 15px;
-            border-radius: 15px;
-            border: 2px solid #4db8ff;
+            background: var(--primary);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 60px;
+            flex-shrink: 0;
+        }
+
+        .status-badge {
+            font-size: 12px;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 4px 8px;
+            border-radius: 12px;
+        }
+
+        .connect-panel {
+            padding: 20px;
             text-align: center;
+            flex-grow: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #qrcode {
+            background: white;
+            padding: 10px;
+            display: inline-block;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        #qrcode img, #qrcode canvas {
+            display: block;
+            max-width: 100%;
         }
 
         .btn {
-            background: linear-gradient(to bottom, #4db8ff, #0055ff);
+            padding: 10px 20px;
             border: none;
-            border-radius: 8px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin: 5px;
+            transition: 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--secondary);
             color: white;
-            padding: 10px;
+        }
+
+        .btn-outline {
+            border: 1px solid var(--secondary);
+            color: var(--secondary);
+            background: transparent;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        /* FILE TRANSFER SECTION */
+        .files-panel {
+            padding: 15px;
+            background: white;
+            border-top: 1px solid #ddd;
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+            min-height: 0;
+            max-height: 50%;
+        }
+
+        .files-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            font-weight: bold;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        /* --- 3D MAGIC FOLDER BUTTON (SIDEBAR VERSION) --- */
+        .magic-btn-small {
+            position: relative;
+            padding: 8px 15px;
+            border-radius: 8px;
+            background: #ffffff;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: bold;
+            font-size: 13px;
+            color: #333;
+            transform-style: preserve-3d;
+            transition: transform 0.1s;
+            z-index: 1;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .magic-btn-small:active {
+            transform: scale(0.95);
+        }
+
+        /* Multi-Color Glow Animation */
+        .magic-btn-small::before {
+            content: "";
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, #4285f4, #db4437, #f4b400, #0f9d58);
+            z-index: -1;
+            border-radius: 10px;
+            filter: blur(6px);
+            opacity: 0.8;
+            animation: glowing 3s linear infinite;
+        }
+
+        .magic-btn-small::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
             width: 100%;
-            margin-bottom: 10px;
+            height: 100%;
+            background: white;
+            border-radius: 8px;
+            z-index: -1;
+        }
+
+        @keyframes glowing {
+            0% {
+                filter: blur(5px);
+                opacity: 0.6;
+            }
+
+            50% {
+                filter: blur(8px);
+                opacity: 0.9;
+            }
+
+            100% {
+                filter: blur(5px);
+                opacity: 0.6;
+            }
+        }
+
+        /* ------------------------------------------------ */
+
+        /* NEW FIREBASE GLOW STYLE FOR MOBILE FOLDER ICON */
+        .firebase-glow-btn {
+            background: #ffffff;
+            border: 2px solid #ffffff;
+            border-radius: 12px; /* 2D Box Look */
+            width: 42px;
+            height: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            cursor: pointer;
+            margin-right: 10px;
+            
+            /* The Google Firebase Glow */
+            box-shadow: 0 0 10px rgba(255, 193, 7, 0.6), 
+                        0 0 20px rgba(255, 87, 34, 0.4);
+            animation: firebasePulse 2s infinite ease-in-out;
+            transition: transform 0.2s;
+        }
+
+        .firebase-glow-btn:active {
+            transform: scale(0.92);
+        }
+
+        @keyframes firebasePulse {
+            0% { box-shadow: 0 0 8px rgba(255, 193, 7, 0.5); }
+            50% { box-shadow: 0 0 18px rgba(255, 160, 0, 0.8), 0 0 12px rgba(255, 255, 255, 0.6); }
+            100% { box-shadow: 0 0 8px rgba(255, 193, 7, 0.5); }
+        }
+
+        /* ------------------------------------------------ */
+
+        #file-input {
+            display: none;
+        }
+
+        #transfer-list {
+            flex-grow: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding-right: 5px;
+            min-height: 0;
+        }
+
+        .transfer-item {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #eee;
+            position: relative;
+            font-size: 13px;
+            flex-shrink: 0;
+        }
+
+        .t-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+
+        .t-name {
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 160px;
+        }
+
+        .t-bar-bg {
+            height: 6px;
+            background: #ddd;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .t-bar-fill {
+            height: 100%;
+            background: var(--green);
+            width: 0%;
+            transition: width 0.2s;
+        }
+
+        .t-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: #666;
+            margin-top: 4px;
+        }
+
+        .btn-cancel {
+            background: transparent;
+            color: var(--red);
+            border: none;
+            font-size: 16px;
             font-weight: bold;
             cursor: pointer;
-            box-shadow: 0 4px #003399;
-            font-family: inherit;
+            line-height: 1;
         }
-        .btn:active { box-shadow: 0 1px #003399; transform: translateY(3px); }
-        .btn.danger { background: linear-gradient(to bottom, #ff4d4d, #cc0000); box-shadow: 0 4px #880000; }
-        .btn.danger:active { box-shadow: 0 1px #880000; }
 
-        /* Game Over Screen */
-        #game-over {
+        /* CHAT SECTION */
+        .chat-area {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
+            background-color: #e5ddd5;
+            position: relative;
+        }
+
+        .chat-header {
+            padding: 10px 15px;
+            background: #f0f2f5;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 60px;
+            flex-shrink: 0;
+        }
+
+        .chat-user {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Sound Toggle Button (Replaces Avatar) */
+        .sound-toggle-btn {
+            width: 40px;
+            height: 40px;
+            background: #ffffff;
+            border: 1px solid #ddd;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 18px;
+            transition: 0.2s;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .sound-toggle-btn:active {
+            transform: scale(0.9);
+        }
+
+        .sound-mode-ring {
+            color: var(--primary);
+        }
+
+        .sound-mode-vibrate {
+            color: #ff9800;
+        }
+
+        .sound-mode-silent {
+            color: #999;
+            text-decoration: line-through;
+        }
+
+        .chat-actions {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        /* UPDATED: WHATSAPP STYLE ICONS */
+        .icon-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--primary);
+            padding: 8px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        .icon-btn:hover {
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+        .icon-btn svg {
+            width: 24px;
+            height: 24px;
+            fill: currentColor;
+        }
+
+        .messages {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .msg {
+            max-width: 75%;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            position: relative;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+            word-break: break-word;
+        }
+
+        .msg.sent {
+            align-self: flex-end;
+            background: var(--light);
+            border-top-right-radius: 0;
+        }
+
+        .msg.received {
+            align-self: flex-start;
+            background: white;
+            border-top-left-radius: 0;
+        }
+
+        .msg-time {
+            font-size: 10px;
+            color: #999;
+            float: right;
+            margin-top: 5px;
+            margin-left: 10px;
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .double-tick {
+            color: #4fc3f7;
+            font-weight: bold;
+            font-size: 10px;
+        }
+
+        .msg img {
+            max-width: 100%;
+            border-radius: 6px;
+            cursor: pointer;
+            display: block;
+        }
+
+        .reply-bar {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 5px 15px;
+            border-left: 5px solid var(--secondary);
             display: none;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #555;
+            flex-shrink: 0;
+        }
+
+        .msg-reply-preview {
+            background: rgba(0, 0, 0, 0.05);
+            padding: 4px;
+            border-left: 3px solid var(--secondary);
+            margin-bottom: 4px;
+            border-radius: 4px;
+            font-size: 11px;
+        }
+
+        .reply-btn {
             position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.9);
-            z-index: 50;
+            top: 5px;
+            right: -25px;
+            background: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        .msg:hover .reply-btn {
+            display: flex;
+        }
+
+        /* FIXED INPUT AREA */
+        .input-area {
+            padding: 10px;
+            background: #f0f2f5;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        #msg-input {
+            flex-grow: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 20px;
+            outline: none;
+            font-size: 15px;
+            min-width: 0;
+        }
+
+        .send-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            margin-right: 2px;
+        }
+
+        .typing-indicator {
+            font-size: 11px;
+            color: var(--secondary);
+            font-weight: bold;
+            animation: flash 1.5s infinite;
+            display: none;
+        }
+
+        @keyframes flash {
+            0% {
+                opacity: 0.3;
+            }
+
+            50% {
+                opacity: 1;
+            }
+
+            100% {
+                opacity: 0.3;
+            }
+        }
+
+        .mobile-only {
+            display: none;
+        }
+
+        /* CALL OVERLAYS */
+        .fullscreen-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2000;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-        }
-        
-        h1 { font-size: 60px; color: #ff3333; margin: 0; text-shadow: 0 0 20px red; }
-        p { font-size: 24px; color: #ddd; }
-        
-        #start-btn {
-            font-size: 30px;
-            padding: 15px 40px;
-            background: #28a745;
             color: white;
+        }
+
+        .call-card {
+            background: #1f2c34;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            width: 300px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .call-avatar-lg {
+            width: 100px;
+            height: 100px;
+            background: #ddd;
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            overflow: hidden;
+        }
+
+        .call-actions {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 40px;
+        }
+
+        .call-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
             border: none;
-            border-radius: 50px;
             cursor: pointer;
-            margin-top: 20px;
-            animation: pulse 1s infinite;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            transition: transform 0.2s;
         }
 
-        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+        .btn-accept {
+            background: var(--green);
+            color: white;
+            animation: pulse 1.5s infinite;
+        }
 
-        /* Floating Damage Text */
-        .floater {
+        .btn-reject {
+            background: var(--red);
+            color: white;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.7);
+            }
+
+            70% {
+                box-shadow: 0 0 0 15px rgba(37, 211, 102, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(37, 211, 102, 0);
+            }
+        }
+
+        .active-call-ui {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #remote-video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        #local-video {
             position: absolute;
-            color: yellow;
-            font-weight: bold;
+            bottom: 100px;
+            right: 20px;
+            width: 120px;
+            height: 160px;
+            background: #333;
+            border-radius: 10px;
+            border: 2px solid white;
+            object-fit: cover;
+        }
+
+        .call-controls-bar {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.6);
+            padding: 15px 30px;
+            border-radius: 30px;
+            display: flex;
+            gap: 20px;
+        }
+
+        .control-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             font-size: 20px;
-            pointer-events: none;
-            animation: floatUp 1s forwards;
-            text-shadow: 2px 2px 0 #000;
         }
 
-        @keyframes floatUp { to { transform: translateY(-50px); opacity: 0; } }
+        .control-btn.off {
+            background: white;
+            color: black;
+        }
 
-        #message-box {
-            position: absolute;
-            top: 20%;
+        .btn-hangup {
+            background: var(--red);
+        }
+
+        /* Connection Lock */
+        .connection-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            backdrop-filter: blur(10px);
+            flex-direction: column;
+        }
+
+        .lock-svg {
+            width: 120px;
+            height: 120px;
+        }
+
+        .lock-body {
+            fill: #4285f4;
+            animation: lockBody 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        .lock-shackle {
+            fill: none;
+            stroke: #4285f4;
+            stroke-width: 5;
+            stroke-linecap: round;
+            transform-origin: 50% 35%;
+            animation: lockShackle 0.6s ease forwards 0.4s;
+        }
+
+        .checkmark {
+            fill: none;
+            stroke: #34a853;
+            stroke-width: 5;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            stroke-dasharray: 100;
+            stroke-dashoffset: 100;
+            animation: checkDraw 0.5s ease forwards 1s;
+        }
+
+        @keyframes lockBody {
+            from {
+                transform: scale(0.5);
+                opacity: 0;
+            }
+
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        @keyframes lockShackle {
+            0% {
+                transform: translateY(-15px);
+                opacity: 0;
+            }
+
+            100% {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes checkDraw {
+            to {
+                stroke-dashoffset: 0;
+            }
+        }
+
+        /* PERMISSION GUIDE MODAL */
+        .perm-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 9999;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .perm-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            max-width: 350px;
             width: 100%;
             text-align: center;
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(50px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .perm-icon {
             font-size: 40px;
+            margin-bottom: 15px;
+        }
+
+        .perm-step {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-align: left;
+            margin-bottom: 10px;
+            font-size: 14px;
+            color: #333;
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        .perm-step span {
+            background: var(--primary);
+            color: white;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            flex-shrink: 0;
+        }
+
+        .btn-perm-ok {
+            background: var(--primary);
+            color: white;
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            margin-top: 15px;
+            cursor: pointer;
             font-weight: bold;
-            color: #ffaa00;
-            text-shadow: 0 0 10px black;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.5s;
+        }
+
+        /* Modals */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 3000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal img {
+            max-width: 95%;
+            max-height: 90%;
+            border-radius: 8px;
+            object-fit: contain;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: white;
+            font-size: 30px;
+            cursor: pointer;
+            background: rgba(0, 0, 0, 0.5);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-dl {
+            position: absolute;
+            bottom: 30px;
+            background: white;
+            color: black;
+            padding: 10px 20px;
+            border-radius: 20px;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        #scanner-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: black;
+            z-index: 4000;
+            display: none;
+            flex-direction: column;
+        }
+
+        #qr-reader {
+            flex-grow: 1;
+        }
+
+        .scanner-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: white;
+            z-index: 4001;
+            font-size: 30px;
+            cursor: pointer;
+        }
+
+        /* MOBILE RESPONSIVE FIXES */
+        @media (max-width: 768px) {
+            .app-container {
+                flex-direction: column;
+                width: 100%;
+            }
+
+            .sidebar {
+                width: 100%;
+                height: 100%;
+                position: absolute;
+                top: 0;
+                left: 0;
+                transform: translateX(0);
+            }
+
+            .sidebar.hidden {
+                transform: translateX(-100%);
+            }
+
+            .chat-area {
+                width: 100%;
+                height: 100%;
+                position: absolute;
+                top: 0;
+                left: 0;
+                z-index: 50;
+            }
+
+            .mobile-only {
+                display: inline-block;
+            }
+
+            .files-panel {
+                max-height: none;
+            }
+
+            .header {
+                padding-right: 10px;
+            }
+
+            .btn-close-sidebar {
+                background: none;
+                border: none;
+                color: white;
+                font-size: 20px;
+                cursor: pointer;
+                margin-right: 10px;
+            }
+
+            #local-video {
+                width: 90px;
+                height: 120px;
+                bottom: 120px;
+                right: 10px;
+            }
+
+            .input-area {
+                padding: 8px;
+                gap: 6px;
+            }
         }
     </style>
 </head>
+
 <body>
+    <!-- RINGTONE AUDIO -->
+    <!-- MODIFIED: Updated with a softer, pleasant chime ringtone -->
+    <audio id="ringtone" loop src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"></audio>
 
-<div id="hud">
-    <div id="score-board">SCORE: <span id="score">0</span></div>
-    <div id="health-bar-container">
-        <div id="health-bar"></div>
-        <div id="health-text">Earth Health: 100%</div>
+    <div class="app-container">
+        <!-- SIDEBAR -->
+        <div class="sidebar" id="sidebar">
+            <div class="header">
+                <div style="display:flex; align-items:center;">
+                    <button class="mobile-only btn-close-sidebar" onclick="toggleSidebar()">←</button>
+                    <h2>QR Send</h2>
+                </div>
+                <span id="status-badge" class="status-badge">Disconnected</span>
+            </div>
+
+            <div class="connect-panel" id="connect-panel">
+                <div id="qrcode"></div>
+                <p id="connect-msg" style="color:#666; margin-bottom:10px;">Scan to connect devices</p>
+                <div style="display:flex; justify-content:center; flex-wrap:wrap;">
+                    <button class="btn btn-outline" onclick="shareQRCode()">🔗 Share QR</button>
+                    <button class="btn btn-primary" onclick="startScanner()">📷 Scan QR</button>
+                </div>
+            </div>
+
+            <div class="files-panel" id="files-panel">
+                <div class="files-header">
+                    <span>File Transfer</span>
+                    <!-- UPDATED: 3D MAGIC FOLDER BUTTON IN SIDEBAR -->
+                    <button class="magic-btn-small" onclick="document.getElementById('file-input').click()">
+                        <span style="font-size:16px;">📂</span> Add File
+                    </button>
+                </div>
+                <input type="file" id="file-input" multiple>
+                <div id="transfer-list"></div>
+            </div>
+        </div>
+
+        <!-- CHAT AREA -->
+        <div class="chat-area" id="chat-area">
+            <div class="chat-header">
+                <div class="chat-user">
+                    <!-- 
+                        MODIFIED: REPLACED OLD SIMPLE BUTTON WITH NEW GLOWING FIREBASE STYLE BUTTON 
+                        Replaced "icon-btn" with "firebase-glow-btn"
+                    -->
+                    <button class="firebase-glow-btn mobile-only" onclick="toggleSidebar()">📁</button>
+
+                    <!-- UPDATED: SOUND TOGGLE BUTTON (Replaces Avatar) -->
+                    <div class="sound-toggle-btn" id="sound-toggle" onclick="toggleSoundMode()">
+                        🔔
+                    </div>
+
+                    <div>
+                        <div style="font-weight:bold;">Peer</div>
+                        <div style="font-size:11px; color:#666;" id="connection-status">Waiting...</div>
+                        <div class="typing-indicator" id="typing-indicator">Typing...</div>
+                    </div>
+                </div>
+                <!-- 
+                    MODIFIED SECTION: REAL WHATSAPP ICONS (SVG)
+                    Replaced emojis 📞 and 📹 with SVG paths
+                -->
+                <div class="chat-actions">
+                    <!-- Video Call Icon -->
+                    <button class="icon-btn" onclick="initCall(true)" title="Video Call">
+                        <svg viewBox="0 0 24 24" preserveAspectRatio="xMidYMid meet" version="1.1" x="0px" y="0px">
+                            <path d="M21.526,8.149C21.231,7.967,20.862,7.951,20.553,8.105l-3.266,1.634V6.5c0-1.654-1.346-3-3-3H4.5c-1.654,0-3,1.346-3,3 v11c0,1.654,1.346,3,3,3h9.787c1.654,0,3-1.346,3-3v-3.24l3.266,1.634c0.129,0.065,0.27,0.096,0.411,0.096 c0.187,0,0.373-0.055,0.534-0.16c0.295-0.191,0.472-0.522,0.472-0.875V9.024C21.999,8.671,21.821,8.34,21.526,8.149z"></path>
+                        </svg>
+                    </button>
+                    <!-- Audio Call Icon -->
+                    <button class="icon-btn" onclick="initCall(false)" title="Voice Call">
+                        <svg viewBox="0 0 24 24" preserveAspectRatio="xMidYMid meet" version="1.1" x="0px" y="0px">
+                            <path d="M19.376,12.416L19.376,12.416c-0.865-0.421-2.091-0.908-3.52-1.328c-0.85-0.25-1.748,0.021-2.22,0.672 l-1.074,1.482c-0.198,0.273-0.575,0.369-0.876,0.219c-1.722-0.854-3.593-2.671-4.48-4.321c-0.158-0.294-0.076-0.658,0.188-0.862 l1.521-1.171c0.613-0.472,0.916-1.329,0.73-2.158c-0.347-1.547-0.741-2.887-1.096-3.811C8.254,0.349,7.469-0.163,6.583,0.038 L4.538,0.506C3.013,0.854,1.836,2.259,2.022,3.823c0.353,2.964,1.875,7.311,5.659,11.233c4.156,4.308,8.969,5.772,11.956,5.918 c1.564,0.076,2.915-1.157,3.167-2.695l0.36-2.193C23.36,15.155,22.759,14.062,19.376,12.416z"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="messages" id="messages"></div>
+
+            <div class="reply-bar" id="reply-bar">
+                <div>
+                    <div style="color:var(--primary); font-weight:bold; font-size:10px;">Replying to...</div>
+                    <div id="reply-text-preview"></div>
+                </div>
+                <button onclick="cancelReply()" style="border:none; background:none; font-size:16px;">✕</button>
+            </div>
+
+            <div class="input-area">
+                <!-- Removed floating mobile magic button since it's now in sidebar/header accessibility -->
+
+                <!-- Use this for image upload -->
+                <button class="icon-btn" onclick="document.getElementById('img-input').click()">📷</button>
+
+                <input type="file" id="img-input" accept="image/*" style="display:none">
+                <input type="text" id="msg-input" placeholder="Type a message...">
+                <button class="send-btn" onmousedown="event.preventDefault()" onclick="sendText()">➤</button>
+            </div>
+        </div>
     </div>
-</div>
 
-<div id="message-box"></div>
+    <!-- OVERLAYS -->
 
-<div id="controls">
-    <h3>God Powers ⚡</h3>
-    <button class="btn" onclick="activateShield()">🛡️ Gravity Shield</button>
-    <button class="btn danger" onclick="sunPulse()">☀️ Sun Nuke (Clear All)</button>
-    <div style="font-size: 12px; color: #aaa; margin-top: 5px;">
-        Click flying objects to destroy them!
+    <!-- CONNECTION LOCK OVERLAY -->
+    <div class="connection-overlay" id="connection-overlay">
+        <div class="lock-animation">
+            <svg class="lock-svg" viewBox="0 0 100 100">
+                <path class="lock-shackle" d="M35 45 V35 C35 25 40 20 50 20 C60 20 65 25 65 35 V45" />
+                <rect class="lock-body" x="30" y="45" width="40" height="35" rx="5" />
+                <polyline class="checkmark" points="40,62 47,69 62,54" />
+            </svg>
+            <p style="color: white; font-weight: 600; margin-top: 15px; font-size: 18px;">End-to-End Encrypted</p>
+        </div>
     </div>
-</div>
 
-<div id="game-over">
-    <h1>GAME OVER</h1>
-    <p id="death-reason">Earth was destroyed!</p>
-    <p>Final Score: <span id="final-score">0</span></p>
-    <button id="start-btn" onclick="startGame()">Try Again</button>
-</div>
+    <!-- PERMISSION GUIDE MODAL -->
+    <div class="perm-modal" id="perm-modal">
+        <div class="perm-card">
+            <div class="perm-icon">🔒</div>
+            <h3>Permission Blocked</h3>
+            <p style="color:#666; font-size:13px; margin-bottom:15px;">To make calls, please enable microphone/camera
+                access.</p>
 
-<div id="canvas-container"></div>
+            <div class="perm-step">
+                <span>1</span>
+                <div>Tap the <b>Lock Icon</b> (🔒) or <b>Settings</b> in the URL bar.</div>
+            </div>
+            <div class="perm-step">
+                <span>2</span>
+                <div>Select <b>Permissions</b> or <b>Site Settings</b>.</div>
+            </div>
+            <div class="perm-step">
+                <span>3</span>
+                <div>Set Camera & Microphone to <b>Allow</b> or <b>Ask</b>.</div>
+            </div>
 
-<!-- Three.js Library -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+            <button class="btn-perm-ok" onclick="document.getElementById('perm-modal').style.display='none'">Okay, I'll
+                do it</button>
+        </div>
+    </div>
 
-<script>
-    // --- Configuration ---
-    const G = 0.5;
-    const TIME_STEP = 0.5;
-    
-    // Texture URLs (Realistic)
-    const textures = {
-        sun: 'https://upload.wikimedia.org/wikipedia/commons/9/99/Map_of_the_full_sun.jpg',
-        earth: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Solarsystemscope_texture_2k_earth_daymap.jpg/1024px-Solarsystemscope_texture_2k_earth_daymap.jpg',
-        moon: 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/74/Moon_texture_-_AS11-44-6667.jpg/1024px-Moon_texture_-_AS11-44-6667.jpg',
-        jupiter: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Solarsystemscope_texture_2k_jupiter.jpg/1024px-Solarsystemscope_texture_2k_jupiter.jpg'
-    };
+    <div class="fullscreen-overlay" id="incoming-call-ui">
+        <div class="call-card">
+            <div class="call-avatar-lg"><img src="https://cdn-icons-png.flaticon.com/512/149/149071.png" width="100%">
+            </div>
+            <h2 id="incoming-call-type">Incoming Call...</h2>
+            <p style="color:#aaa; margin-top:10px;">Peer is calling you</p>
+            <div class="call-actions">
+                <button class="call-btn btn-reject" onclick="rejectCall()">✖</button>
+                <button class="call-btn btn-accept" onclick="answerCall()">✔</button>
+            </div>
+        </div>
+    </div>
 
-    // Funny Enemy Types
-    const enemyTypes = [
-        { name: "Space Pizza", emoji: "🍕", mass: 2, size: 3, speed: 0.8, damage: 10 },
-        { name: "Alien UFO", emoji: "🛸", mass: 3, size: 4, speed: 1.2, damage: 15 },
-        { name: "Poop Meteor", emoji: "💩", mass: 5, size: 5, speed: 0.5, damage: 20 },
-        { name: "Dino", emoji: "🦖", mass: 4, size: 6, speed: 0.9, damage: 25 },
-        { name: "Rubber Duck", emoji: "🦆", mass: 10, size: 8, speed: 0.3, damage: 40 }, // Heavy!
-        { name: "Donut", emoji: "🍩", mass: 2, size: 4, speed: 1.0, damage: 10 }
-    ];
+    <div class="fullscreen-overlay" id="active-call-ui">
+        <div class="active-call-ui">
+            <video id="remote-video" autoplay playsinline></video>
+            <video id="local-video" autoplay playsinline muted></video>
+            <div class="call-controls-bar">
+                <button class="control-btn" id="btn-mute" onclick="toggleMic()">🎤</button>
+                <button class="control-btn btn-hangup" onclick="endCall()">📞</button>
+                <button class="control-btn" id="btn-cam" onclick="toggleCam()">📷</button>
+            </div>
+        </div>
+    </div>
 
-    let scene, camera, renderer, controls;
-    let sun, earth, sunLight;
-    let bodies = []; 
-    let enemies = [];
-    let particles = [];
-    let textureLoader;
-    
-    // Game State
-    let score = 0;
-    let earthHealth = 100;
-    let isPlaying = false;
-    let spawnRate = 200; // Frames
-    let frameCount = 0;
-    let animationId;
+    <div class="modal" id="img-modal">
+        <div class="modal-close" onclick="closeModal()">✕</div>
+        <img id="modal-img" src="">
+        <a id="modal-dl" href="#" class="modal-dl" download>Download</a>
+    </div>
 
-    window.onload = function() {
-        init();
-        document.getElementById('game-over').style.display = 'flex';
-        document.getElementById('game-over').querySelector('h1').innerText = "GALACTIC DEFENDER";
-        document.getElementById('death-reason').innerText = "Protect Earth from Space Junk!";
-        document.getElementById('start-btn').innerText = "START GAME";
-    };
+    <div id="scanner-overlay">
+        <div class="scanner-close" onclick="stopScanner()">✕</div>
+        <div id="qr-reader"></div>
+    </div>
 
-    function init() {
-        scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x050505);
-        
-        camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 5000);
-        camera.position.set(0, 150, 300);
+    <script>
+        let peer, conn, myId, isHost;
+        let activeCall = null, localStream = null;
+        let replyContext = null;
+        let fileQueue = [], activeTransfer = null, isTransferring = false;
+        let typingTimeout;
+        let callMode = 'ring'; // ring, vibrate, silent
+        let vibrateInterval;
 
-        renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        document.getElementById('canvas-container').appendChild(renderer.domElement);
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check if mobile to show/hide elements
+            if (window.innerWidth < 768) {
+                const hiddenEl = document.querySelector('.mobile-hidden');
+                if (hiddenEl) hiddenEl.style.display = 'none';
+            }
 
-        controls = new THREE.OrbitControls(camera, renderer.domElement);
-        controls.enableDamping = true;
-        
-        textureLoader = new THREE.TextureLoader();
-        textureLoader.crossOrigin = 'anonymous';
+            window.addEventListener('beforeunload', (e) => {
+                if (!isHost) { history.replaceState(null, null, window.location.pathname); }
+            });
+            initApp();
 
-        // Starfield
-        createStarfield();
+            const msgInput = document.getElementById('msg-input');
 
-        // Lighting
-        sunLight = new THREE.PointLight(0xffffff, 1.5, 2000);
-        scene.add(sunLight);
-        scene.add(new THREE.AmbientLight(0x404040));
+            // Typing Listener
+            msgInput.addEventListener('input', () => {
+                if (conn && conn.open) {
+                    conn.send({ type: 'typing', isTyping: true });
+                    clearTimeout(typingTimeout);
+                    typingTimeout = setTimeout(() => {
+                        if (conn && conn.open) conn.send({ type: 'typing', isTyping: false });
+                    }, 1000);
+                }
+            });
 
-        // Interaction
-        renderer.domElement.addEventListener('pointerdown', onMouseDown, false);
-        window.addEventListener('resize', onWindowResize, false);
-        
-        // Don't start loop yet, wait for Start Button
-        animate();
-    }
+            // ENTER KEY TO SEND
+            msgInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    sendText();
+                }
+            });
 
-    function startGame() {
-        // Reset Game Variables
-        score = 0;
-        earthHealth = 100;
-        isPlaying = true;
-        frameCount = 0;
-        spawnRate = 200;
-        updateHUD();
-
-        // Clear Scene Entities
-        bodies.forEach(b => {
-            scene.remove(b.mesh);
-            if(b.trail) scene.remove(b.trail);
-        });
-        enemies.forEach(e => scene.remove(e.mesh));
-        bodies = [];
-        enemies = [];
-
-        // Hide Menu
-        document.getElementById('game-over').style.display = 'none';
-
-        // Recreate Solar System
-        createSystem();
-    }
-
-    function createSystem() {
-        // 1. Sun
-        const sunGeo = new THREE.SphereGeometry(15, 32, 32);
-        const sunMat = new THREE.MeshBasicMaterial({ map: textureLoader.load(textures.sun), color: 0xffff00 });
-        sun = new THREE.Mesh(sunGeo, sunMat);
-        scene.add(sun);
-        
-        bodies.push({
-            name: "Sun", mass: 1000, mesh: sun,
-            pos: new THREE.Vector3(0,0,0), vel: new THREE.Vector3(0,0,0), type: 'star'
+            // Image Listener
+            document.getElementById('img-input').addEventListener('change', function () {
+                const file = this.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    const msgId = Date.now();
+                    const base64 = e.target.result;
+                    if (conn && conn.open) conn.send({ type: 'image', content: base64, id: msgId });
+                    addImage(base64, 'sent', msgId);
+                };
+                reader.readAsDataURL(file);
+                this.value = '';
+            });
         });
 
-        // 2. Earth
-        const earthGeo = new THREE.SphereGeometry(4, 32, 32);
-        const earthMat = new THREE.MeshStandardMaterial({ map: textureLoader.load(textures.earth) });
-        const earthMesh = new THREE.Mesh(earthGeo, earthMat);
-        
-        // Position Earth
-        const dist = 100;
-        earthMesh.position.set(dist, 0, 0);
-        scene.add(earthMesh);
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('hidden');
+        }
 
-        // Orbital Velocity calculation
-        const speed = Math.sqrt((G * 1000) / dist);
+        // SOUND MODE TOGGLE LOGIC
+        function toggleSoundMode() {
+            const btn = document.getElementById('sound-toggle');
+            if (callMode === 'ring') {
+                callMode = 'vibrate';
+                btn.innerText = '📳';
+                btn.className = 'sound-toggle-btn sound-mode-vibrate';
+            } else if (callMode === 'vibrate') {
+                callMode = 'silent';
+                btn.innerText = '🔕';
+                btn.className = 'sound-toggle-btn sound-mode-silent';
+            } else {
+                callMode = 'ring';
+                btn.innerText = '🔔';
+                btn.className = 'sound-toggle-btn sound-mode-ring';
+            }
+        }
 
-        earth = {
-            name: "Earth", mass: 10, mesh: earthMesh,
-            pos: new THREE.Vector3(dist, 0, 0),
-            vel: new THREE.Vector3(0, 0, speed), // Perpendicular velocity
-            type: 'planet'
+        function playCallAlert() {
+            if (callMode === 'silent') return;
+
+            if (callMode === 'ring') {
+                const audio = document.getElementById('ringtone');
+                audio.currentTime = 0;
+                audio.play().catch(e => console.log("Audio play failed (interaction required)", e));
+            }
+
+            if (callMode === 'ring' || callMode === 'vibrate') {
+                if (navigator.vibrate) {
+                    vibrateInterval = setInterval(() => {
+                        navigator.vibrate([500, 200, 500]);
+                    }, 1500);
+                }
+            }
+        }
+
+        function stopCallAlert() {
+            const audio = document.getElementById('ringtone');
+            audio.pause();
+            audio.currentTime = 0;
+            if (vibrateInterval) clearInterval(vibrateInterval);
+            if (navigator.vibrate) navigator.vibrate(0);
+        }
+
+        function initApp() {
+            const hash = window.location.hash.substring(1);
+            isHost = !hash;
+
+            // FIX: Enhanced STUN server list (Crucial for Mobile-to-Mobile)
+            const peerConfig = {
+                debug: 2,
+                config: {
+                    iceServers: [
+                        { urls: 'stun:stun.l.google.com:19302' },
+                        { urls: 'stun:global.stun.twilio.com:3478' },
+                        { urls: 'stun:stun.voip.blackberry.com:3478' },
+                        { urls: 'stun:stun.mit.edu:8000' },
+                        { urls: 'stun:stun.sipgate.net:3478' }
+                    ]
+                }
+            };
+
+            peer = new Peer(undefined, peerConfig);
+
+            peer.on('open', (id) => {
+                myId = id;
+                if (isHost) {
+                    new QRCode(document.getElementById('qrcode'), { text: window.location.href + '#' + id, width: 180, height: 180 });
+                } else {
+                    document.getElementById('connect-panel').style.display = 'none';
+                    document.getElementById('connection-status').innerText = 'Connecting...';
+                    connectToPeer(hash);
+                    if (window.innerWidth < 768) document.getElementById('sidebar').classList.add('hidden');
+                }
+            });
+
+            peer.on('connection', (c) => setupConnection(c));
+
+            peer.on('call', (call) => {
+                document.getElementById('incoming-call-ui').style.display = 'flex';
+                document.getElementById('incoming-call-type').innerText = call.metadata?.type === 'video' ? 'Incoming Video Call...' : 'Incoming Voice Call...';
+                window.pendingCall = call;
+                // TRIGGER SOUND/VIBRATION
+                playCallAlert();
+            });
+
+            // FIX: Better Error Handling
+            peer.on('error', (err) => {
+                console.error(err);
+                if (!isHost && (err.type === 'peer-unavailable' || err.type === 'network')) {
+                    alert("Connection failed. Please try scanning again.");
+                    window.location.hash = ''; window.location.reload();
+                }
+            });
+        }
+
+        function connectToPeer(id) {
+            // FIX: Wait slightly to ensure peer is ready
+            setTimeout(() => {
+                setupConnection(peer.connect(id, { reliable: true }));
+            }, 1000);
+        }
+
+        function setupConnection(c) {
+            conn = c;
+            conn.on('open', () => {
+                const overlay = document.getElementById('connection-overlay');
+                overlay.style.display = 'flex';
+                setTimeout(() => {
+                    overlay.style.display = 'none';
+                }, 2500);
+
+                document.getElementById('status-badge').innerText = 'Connected';
+                document.getElementById('status-badge').style.background = 'var(--green)';
+                document.getElementById('connect-panel').style.display = 'none';
+                document.getElementById('connection-status').innerText = 'Online';
+                if (window.innerWidth < 768) document.getElementById('sidebar').classList.add('hidden');
+            });
+            conn.on('data', handleData);
+            conn.on('close', () => { alert('Disconnected'); window.location.hash = ''; window.location.reload(); });
+            conn.on('error', (err) => console.error("Conn Error", err));
+        }
+
+        function handleData(data) {
+            switch (data.type) {
+                case 'text': addMessage(data.content, 'received', data.reply); conn.send({ type: 'ack', id: data.id }); break;
+                case 'image': addImage(data.content, 'received', data.id); conn.send({ type: 'ack', id: data.id }); break;
+                case 'typing':
+                    const ind = document.getElementById('typing-indicator');
+                    ind.style.display = data.isTyping ? 'block' : 'none';
+                    break;
+                case 'ack': markRead(data.id); break;
+                case 'dl-notify': markDownloaded(data.id); break;
+                case 'file-meta': startReceivingFile(data); break;
+                case 'file-chunk': processFileChunk(data); break;
+                case 'file-cancel': handleFileCancel(data.fileId); break;
+                // MODIFIED: Added handler for rejected calls
+                case 'call-rejected': 
+                    alert('Call Rejected'); 
+                    endCallUI(); 
+                    break;
+                case 'call-end': endCallUI(); break;
+            }
+        }
+
+        async function shareQRCode() {
+            // FIX: Handle both Canvas and Image rendering from qrcode.js
+            const canvas = document.querySelector('#qrcode canvas');
+            const img = document.querySelector('#qrcode img');
+            let url;
+
+            if (canvas) {
+                url = canvas.toDataURL();
+            } else if (img) {
+                url = img.src;
+            } else {
+                alert("QR Code not generated yet. Please wait.");
+                return;
+            }
+
+            try {
+                const blob = await (await fetch(url)).blob();
+                const file = new File([blob], "qr.png", { type: "image/png" });
+                if (navigator.share) {
+                    navigator.share({ files: [file], url: window.location.href + '#' + myId })
+                        .catch(err => console.log("Share cancelled"));
+                } else {
+                    alert("Web Share API not supported on this browser.");
+                }
+            } catch (e) {
+                console.error("Error sharing QR", e);
+            }
+        }
+
+        // Chat Logic
+        function sendText() {
+            const input = document.getElementById('msg-input');
+            const val = input.value.trim();
+            if (!val) return;
+            
+            if (!conn || !conn.open) {
+                alert("Not connected to a peer!");
+                return;
+            }
+            
+            const id = Date.now();
+            conn.send({ type: 'text', content: val, id: id, reply: replyContext });
+            addMessage(val, 'sent', replyContext, id);
+            input.value = '';
+            cancelReply();
+            input.focus();
+        }
+
+        function addMessage(text, type, reply, id) {
+            const div = document.createElement('div');
+            div.className = `msg ${type}`; div.id = `msg-${id}`;
+            let html = reply ? `<div class="msg-reply-preview">${reply.text.substring(0, 50)}...</div>` : '';
+            html += `${text}<div class="msg-time">${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} ${type === 'sent' ? '<span class="double-tick">✓</span>' : ''}</div><div class="reply-btn" onclick="setReply('${text.replace(/'/g, "\\'")}')">↩</div>`;
+            div.innerHTML = html;
+            document.getElementById('messages').appendChild(div);
+            scrollToBottom();
+        }
+
+        function addImage(src, type, id) {
+            const div = document.createElement('div');
+            div.className = `msg ${type}`; div.id = `msg-${id}`;
+            div.innerHTML = `<img src="${src}" onclick="openModal(this.src, '${type}', ${id})"><div class="msg-time">${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} ${type === 'sent' ? '<span class="double-tick">✓</span>' : ''}</div>${type === 'sent' ? '<div class="download-indicator" style="font-size:10px; display:none;">Downloaded by peer</div>' : ''}`;
+            document.getElementById('messages').appendChild(div);
+            scrollToBottom();
+        }
+
+        // File Transfer
+        document.getElementById('file-input').onchange = function () {
+            for (let f of this.files) {
+                const id = Date.now() + Math.random().toString(36).substr(2, 5);
+                fileQueue.push({ file: f, id: id });
+                createFileUI(id, f.name, 'Sending');
+            }
+            processFileQueue(); this.value = '';
         };
-        bodies.push(earth);
 
-        // 3. Jupiter (Bodyguard)
-        const jupGeo = new THREE.SphereGeometry(10, 32, 32);
-        const jupMat = new THREE.MeshStandardMaterial({ map: textureLoader.load(textures.jupiter) });
-        const jupMesh = new THREE.Mesh(jupGeo, jupMat);
-        const jDist = 180;
-        jupMesh.position.set(-jDist, 0, 0);
-        scene.add(jupMesh);
-        
-        const jSpeed = Math.sqrt((G * 1000) / jDist);
-        bodies.push({
-            name: "Jupiter", mass: 80, mesh: jupMesh,
-            pos: new THREE.Vector3(-jDist, 0, 0),
-            vel: new THREE.Vector3(0, 0, -jSpeed),
-            type: 'planet'
-        });
-    }
-
-    // --- Emoji Sprite Creator ---
-    function createEmojiTexture(emoji, size=64) {
-        const canvas = document.createElement('canvas');
-        canvas.width = size;
-        canvas.height = size;
-        const ctx = canvas.getContext('2d');
-        ctx.font = `${size-10}px serif`;
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(emoji, size/2, size/2 + 5);
-        return new THREE.CanvasTexture(canvas);
-    }
-
-    function spawnEnemy() {
-        const type = enemyTypes[Math.floor(Math.random() * enemyTypes.length)];
-        
-        // Sprite Material
-        const spriteMat = new THREE.SpriteMaterial({ map: createEmojiTexture(type.emoji) });
-        const sprite = new THREE.Sprite(spriteMat);
-        sprite.scale.set(type.size * 3, type.size * 3, 1); // Scale up for visibility
-
-        // Random Spawn Position (Far away)
-        const angle = Math.random() * Math.PI * 2;
-        const radius = 250;
-        const x = Math.cos(angle) * radius;
-        const z = Math.sin(angle) * radius;
-        
-        sprite.position.set(x, 0, z);
-        scene.add(sprite);
-
-        // Calculate Velocity towards Earth (Intercept course!)
-        const target = earth.pos.clone();
-        // Add some randomness so they don't all hit perfectly center
-        target.x += (Math.random() - 0.5) * 40;
-        target.z += (Math.random() - 0.5) * 40;
-
-        const direction = new THREE.Vector3().subVectors(target, sprite.position).normalize();
-        const velocity = direction.multiplyScalar(type.speed * 1.5); // Speed multiplier
-
-        enemies.push({
-            mesh: sprite,
-            pos: new THREE.Vector3(x, 0, z),
-            vel: velocity,
-            mass: type.mass,
-            damage: type.damage,
-            name: type.name
-        });
-    }
-
-    function updateGame() {
-        if(!isPlaying) return;
-
-        frameCount++;
-        
-        // Spawn Logic (Gets harder over time)
-        if (frameCount % Math.floor(spawnRate) === 0) {
-            spawnEnemy();
-            if(spawnRate > 50) spawnRate *= 0.98; // Increase difficulty
-            score += 10;
-            updateHUD();
+        function createFileUI(id, name, type) {
+            const div = document.createElement('div');
+            div.className = 'transfer-item'; div.id = `file-${id}`;
+            div.innerHTML = `<div class="t-info"><span class="t-name">${name}</span><button class="btn-cancel" onclick="cancelTransfer('${id}', '${type}')">✕</button></div><div class="t-bar-bg"><div class="t-bar-fill" id="bar-${id}"></div></div><div class="t-meta"><span id="prog-${id}">0%</span><span id="eta-${id}">Calculating...</span></div>`;
+            document.getElementById('transfer-list').prepend(div);
         }
 
-        // --- Physics Engine ---
-        const allBodies = [...bodies, ...enemies]; // Physics affects everyone
+        function processFileQueue() {
+            if (isTransferring || fileQueue.length === 0) return;
+            if (!conn || !conn.open) return; // Safety check
 
-        for (let i = 0; i < allBodies.length; i++) {
-            for (let j = i + 1; j < allBodies.length; j++) {
-                const b1 = allBodies[i];
-                const b2 = allBodies[j];
+            const item = fileQueue.shift();
+            activeTransfer = item; isTransferring = true;
+            try {
+                conn.send({ type: 'file-meta', fileId: item.id, name: item.file.name, size: item.file.size });
+
+                const reader = new FileReader();
+                let offset = 0; let start = Date.now();
+                reader.onload = (e) => {
+                    if (!activeTransfer) return;
+                    // Check connection again before sending chunk
+                    if (conn && conn.open) {
+                        conn.send({ type: 'file-chunk', fileId: item.id, data: e.target.result });
+                        offset += e.target.result.byteLength;
+                        updateProgress(item.id, offset, item.file.size, start);
+                        if (offset < item.file.size) readNext();
+                        else { isTransferring = false; setTimeout(processFileQueue, 50); }
+                    } else {
+                         isTransferring = false;
+                    }
+                };
+                const readNext = () => reader.readAsArrayBuffer(item.file.slice(offset, offset + 16384));
+                readNext();
+            } catch(e) {
+                console.error("Transfer failed", e);
+                isTransferring = false;
+            }
+        }
+
+        let receiving = {};
+        function startReceivingFile(meta) {
+            receiving[meta.fileId] = { name: meta.name, size: meta.size, received: 0, buffer: [], start: Date.now() };
+            createFileUI(meta.fileId, meta.name, 'Receiving');
+        }
+        function processFileChunk(data) {
+            const f = receiving[data.fileId];
+            if (!f) return;
+            f.buffer.push(data.data); f.received += data.data.byteLength;
+            updateProgress(data.fileId, f.received, f.size, f.start);
+            if (f.received >= f.size) {
+                const url = URL.createObjectURL(new Blob(f.buffer));
+                const a = document.createElement('a'); a.href = url; a.download = f.name;
+                document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                delete receiving[data.fileId];
+                document.getElementById(`eta-${data.fileId}`).innerText = 'Done';
+            }
+        }
+
+        function updateProgress(id, cur, tot, start) {
+            const pct = Math.round((cur / tot) * 100);
+            const bar = document.getElementById(`bar-${id}`);
+            const txt = document.getElementById(`prog-${id}`);
+            const eta = document.getElementById(`eta-${id}`);
+            if (bar) bar.style.width = pct + '%';
+            if (txt) txt.innerText = pct + '%';
+
+            const elapsed = (Date.now() - start) / 1000;
+            const rate = cur / elapsed;
+            const left = (tot - cur) / rate;
+
+            if (eta && isFinite(left)) {
+                eta.innerText = left < 1 ? 'Done' : formatTime(left) + ' left';
+            }
+        }
+
+        function formatTime(seconds) {
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            const s = Math.floor(seconds % 60);
+            return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        }
+
+        function cancelTransfer(id, type) {
+            document.getElementById(`file-${id}`).remove();
+            if (conn && conn.open) conn.send({ type: 'file-cancel', fileId: id });
+            if (type === 'Sending') {
+                if (activeTransfer?.id === id) { activeTransfer = null; isTransferring = false; processFileQueue(); }
+                else fileQueue = fileQueue.filter(i => i.id !== id);
+            } else delete receiving[id];
+        }
+        function handleFileCancel(id) {
+            const el = document.getElementById(`file-${id}`);
+            if (el) el.innerHTML = '<span style="color:red">Cancelled by peer</span>';
+            if (activeTransfer?.id === id) { activeTransfer = null; isTransferring = false; processFileQueue(); }
+            delete receiving[id];
+        }
+
+        function scrollToBottom() { document.getElementById('messages').scrollTop = 1000000; }
+        function markRead(id) { const el = document.querySelector(`#msg-${id} .double-tick`); if (el) el.innerText = '✓✓'; }
+        function markDownloaded(id) { const el = document.querySelector(`#msg-${id} .download-indicator`); if (el) el.style.display = 'block'; }
+        function openModal(src, type, id) {
+            document.getElementById('img-modal').style.display = 'flex'; document.getElementById('modal-img').src = src;
+            const dl = document.getElementById('modal-dl');
+            if (type === 'received') { dl.style.display = 'block'; dl.href = src; dl.onclick = () => conn.send({ type: 'dl-notify', id: id }); }
+            else dl.style.display = 'none';
+        }
+        function closeModal() { document.getElementById('img-modal').style.display = 'none'; }
+        function setReply(t) { replyContext = { text: t }; document.getElementById('reply-bar').style.display = 'flex'; document.getElementById('reply-text-preview').innerText = t.substring(0, 50) + '...'; }
+        function cancelReply() { replyContext = null; document.getElementById('reply-bar').style.display = 'none'; }
+
+        // HD Media Constraints
+        const mediaConstraints = {
+            audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+            video: { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 }, facingMode: "user" }
+        };
+
+        // FIX: Permission Handling Logic
+        function checkMediaPermissions(vid) {
+            return new Promise((resolve, reject) => {
+                const constraints = vid ? mediaConstraints : { audio: true, video: false };
                 
-                // Simplified gravity for game performance
-                // Only sun and planets exert gravity, enemies are too light
-                if (b1.mass < 50 && b2.mass < 50) continue; 
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    alert("Your browser does not support calling. Please use a modern browser on HTTPS.");
+                    reject("Not supported");
+                    return;
+                }
 
-                const dx = b2.pos.x - b1.pos.x;
-                const dy = b2.pos.y - b1.pos.y;
-                const dz = b2.pos.z - b1.pos.z;
-                const distSq = dx*dx + dy*dy + dz*dz;
-                const dist = Math.sqrt(distSq);
-
-                if (dist < 5) continue; // Min distance
-
-                const force = (G * b1.mass * b2.mass) / distSq;
-                const fx = (dx/dist) * force;
-                const fz = (dz/dist) * force; // Ignore Y for 2D-ish gameplay
-
-                b1.vel.x += (fx / b1.mass) * TIME_STEP;
-                b1.vel.z += (fz / b1.mass) * TIME_STEP;
-                b2.vel.x -= (fx / b2.mass) * TIME_STEP;
-                b2.vel.z -= (fz / b2.mass) * TIME_STEP;
-            }
+                navigator.mediaDevices.getUserMedia(constraints)
+                .then(stream => {
+                    resolve(stream);
+                })
+                .catch(err => {
+                    // If permission denied, showing the Modal Guide
+                    if(err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                        document.getElementById('perm-modal').style.display = 'flex';
+                    } else {
+                        alert("Error accessing media devices: " + err.message);
+                    }
+                    reject(err);
+                });
+            });
         }
 
-        // Move Bodies
-        bodies.forEach(b => {
-            b.pos.add(b.vel.clone().multiplyScalar(TIME_STEP));
-            b.mesh.position.copy(b.pos);
-        });
-
-        // Move Enemies & Check Collisions
-        for (let i = enemies.length - 1; i >= 0; i--) {
-            const e = enemies[i];
-            e.pos.add(e.vel.clone().multiplyScalar(TIME_STEP));
-            e.mesh.position.copy(e.pos);
-
-            // Check if too far (despawn)
-            if (e.pos.length() > 400) {
-                scene.remove(e.mesh);
-                enemies.splice(i, 1);
-                continue;
-            }
-
-            // Check Collision with Earth
-            const distToEarth = e.pos.distanceTo(earth.pos);
-            if (distToEarth < 8) { // Hit!
-                damageEarth(e.damage);
-                createExplosion(e.pos, 0xff0000);
-                showMessage(`Ouch! Hit by ${e.name}!`);
-                scene.remove(e.mesh);
-                enemies.splice(i, 1);
-            }
+        function initCall(vid) {
+            checkMediaPermissions(vid).then(s => {
+                localStream = s;
+                document.getElementById('active-call-ui').style.display = 'flex';
+                document.getElementById('local-video').srcObject = s;
+                const call = peer.call(conn.peer, s, { metadata: { type: vid ? 'video' : 'audio' } });
+                handleCall(call);
+            }).catch(e => console.log("Call init aborted"));
         }
 
-        // Camera Tracking
-        if(earth) {
-            controls.target.lerp(earth.pos, 0.1);
-        }
-    }
-
-    function damageEarth(amount) {
-        earthHealth -= amount;
-        if(earthHealth < 0) earthHealth = 0;
-        updateHUD();
-        
-        // Screen Shake effect
-        const shake = 2;
-        camera.position.x += (Math.random() - 0.5) * shake;
-        camera.position.z += (Math.random() - 0.5) * shake;
-
-        if (earthHealth <= 0) {
-            gameOver("Earth was destroyed by Space Junk!");
-        }
-    }
-
-    function gameOver(reason) {
-        isPlaying = false;
-        document.getElementById('game-over').style.display = 'flex';
-        document.getElementById('death-reason').innerText = reason;
-        document.getElementById('final-score').innerText = score;
-    }
-
-    // --- Player Actions ---
-    const raycaster = new THREE.Raycaster();
-    const mouse = new THREE.Vector2();
-
-    function onMouseDown(event) {
-        if(!isPlaying) return;
-
-        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-        raycaster.setFromCamera(mouse, camera);
-
-        // Check enemy hits
-        const enemyMeshes = enemies.map(e => e.mesh);
-        const intersects = raycaster.intersectObjects(enemyMeshes);
-
-        if (intersects.length > 0) {
-            const hitObj = intersects[0].object;
-            const enemyIndex = enemies.findIndex(e => e.mesh === hitObj);
+        function answerCall() {
+            stopCallAlert(); // STOP RINGTONE
+            document.getElementById('incoming-call-ui').style.display = 'none';
+            const vid = window.pendingCall.metadata.type === 'video';
             
-            if (enemyIndex > -1) {
-                // DESTROY ENEMY
-                createExplosion(enemies[enemyIndex].pos, 0xffff00);
-                scene.remove(hitObj);
-                enemies.splice(enemyIndex, 1);
-                
-                score += 50;
-                showFloatText(event.clientX, event.clientY, "+50");
-                updateHUD();
-            }
+            checkMediaPermissions(vid).then(s => {
+                localStream = s;
+                document.getElementById('active-call-ui').style.display = 'flex';
+                document.getElementById('local-video').srcObject = s;
+                window.pendingCall.answer(s);
+                handleCall(window.pendingCall);
+            }).catch(e => console.log("Call answer aborted"));
         }
-    }
 
-    window.activateShield = function() {
-        if(!isPlaying) return;
-        // Pushes all enemies away from Earth
-        enemies.forEach(e => {
-            const dir = new THREE.Vector3().subVectors(e.pos, earth.pos).normalize();
-            e.vel.add(dir.multiplyScalar(2)); // Strong push
-        });
-        createExplosion(earth.pos, 0x4db8ff, 20); // Visual Pulse
-        showMessage("Gravity Shield Activated!");
-    };
-
-    window.sunPulse = function() {
-        if(!isPlaying) return;
-        // Destroys all enemies
-        enemies.forEach(e => {
-            createExplosion(e.pos, 0xffaa00);
-            scene.remove(e.mesh);
-        });
-        enemies = [];
-        showMessage("SUN NUKE!!!!");
-        score += 100;
-        updateHUD();
-    };
-
-    // --- Visual Effects ---
-    function createExplosion(pos, color, size=5) {
-        // Simple particle explosion
-        const geom = new THREE.BufferGeometry();
-        const count = 20;
-        const positions = new Float32Array(count * 3);
-        const vels = [];
-        
-        for(let i=0; i<count; i++) {
-            positions[i*3] = pos.x;
-            positions[i*3+1] = pos.y;
-            positions[i*3+2] = pos.z;
-            
-            vels.push(new THREE.Vector3(
-                (Math.random()-0.5)*2, 
-                (Math.random()-0.5)*2, 
-                (Math.random()-0.5)*2
-            ));
+        function handleCall(call) {
+            activeCall = call;
+            call.on('stream', r => { document.getElementById('remote-video').srcObject = r; });
+            call.on('close', endCallUI);
         }
-        geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
         
-        const mat = new THREE.PointsMaterial({ color: color, size: size/2 });
-        const points = new THREE.Points(geom, mat);
-        scene.add(points);
-        
-        particles.push({ mesh: points, vels: vels, life: 1.0 });
-    }
-
-    function updateParticles() {
-        for(let i=particles.length-1; i>=0; i--) {
-            const p = particles[i];
-            p.life -= 0.05;
-            if(p.life <= 0) {
-                scene.remove(p.mesh);
-                particles.splice(i, 1);
-                continue;
+        // FIX: Updated endCall logic to ensure UI update on both sides
+        function endCall() { 
+            // 1. Send signal FIRST
+            if(conn && conn.open) {
+                conn.send({ type: 'call-end' }); 
             }
             
-            const positions = p.mesh.geometry.attributes.position.array;
-            for(let j=0; j<p.vels.length; j++) {
-                positions[j*3] += p.vels[j].x;
-                positions[j*3+1] += p.vels[j].y;
-                positions[j*3+2] += p.vels[j].z;
+            // 2. Close local call object
+            if (activeCall) {
+                activeCall.close();
             }
-            p.mesh.geometry.attributes.position.needsUpdate = true;
-            p.mesh.material.opacity = p.life;
+            
+            // 3. Update local UI immediately
+            endCallUI(); 
         }
-    }
 
-    function showMessage(msg) {
-        const el = document.getElementById('message-box');
-        el.innerText = msg;
-        el.style.opacity = 1;
-        setTimeout(() => el.style.opacity = 0, 2000);
-    }
+        // FIX: Improved endCallUI to fully reset state
+        function endCallUI() {
+            stopCallAlert(); // ENSURE RINGTONE STOPS
+            document.getElementById('active-call-ui').style.display = 'none';
+            document.getElementById('incoming-call-ui').style.display = 'none';
+            
+            // Clean up local tracks
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
+            }
+            
+            activeCall = null;
+            window.pendingCall = null;
+        }
 
-    function showFloatText(x, y, text) {
-        const el = document.createElement('div');
-        el.className = 'floater';
-        el.innerText = text;
-        el.style.left = x + 'px';
-        el.style.top = y + 'px';
-        document.body.appendChild(el);
-        setTimeout(() => el.remove(), 1000);
-    }
-
-    function updateHUD() {
-        document.getElementById('score').innerText = score;
-        const bar = document.getElementById('health-bar');
-        bar.style.width = earthHealth + '%';
+        function toggleMic() { const t = localStream.getAudioTracks()[0]; t.enabled = !t.enabled; document.getElementById('btn-mute').classList.toggle('off'); }
+        function toggleCam() { const t = localStream.getVideoTracks()[0]; if (t) { t.enabled = !t.enabled; document.getElementById('btn-cam').classList.toggle('off'); } }
         
-        if (earthHealth > 50) bar.style.background = '#33ff33';
-        else if (earthHealth > 20) bar.style.background = '#ffff00';
-        else bar.style.background = '#ff0000';
-        
-        document.getElementById('health-text').innerText = `Earth Health: ${Math.floor(earthHealth)}%`;
-    }
+        // MODIFIED: rejectCall now notifies the caller
+        function rejectCall() {
+            stopCallAlert(); // STOP RINGTONE
+            
+            // Notify the caller that call is rejected
+            if(conn && conn.open) {
+                conn.send({ type: 'call-rejected' });
+            }
 
-    function createStarfield() {
-        const starGeo = new THREE.BufferGeometry();
-        const starCount = 3000;
-        const posArray = new Float32Array(starCount * 3);
-        for(let i=0; i<starCount * 3; i++) posArray[i] = (Math.random() - 0.5) * 2000;
-        starGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
-        const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({color: 0xffffff, size: 1}));
-        scene.add(stars);
-    }
+            document.getElementById('incoming-call-ui').style.display = 'none'; 
+            if(window.pendingCall) window.pendingCall.close();
+            window.pendingCall = null;
+        }
 
-    function onWindowResize() {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
-    }
+        let qrScanner;
+        function startScanner() {
+            document.getElementById('scanner-overlay').style.display = 'flex';
+            
+            // FIX: Safely create scanner
+            if (!qrScanner) {
+                qrScanner = new Html5Qrcode("qr-reader");
+            }
+            
+            /* MODIFIED SECTION: SCANNER CONFIG
+               1. Created dynamicqrBoxSize to be 70% of screen min-dimension (Solves "too close" issue).
+               2. Added aspectRatio: 1.0 to reduce wide-angle distortion.
+            */
+            const qrBoxSize = Math.min(window.innerWidth, window.innerHeight) * 0.7;
 
-    function animate() {
-        requestAnimationFrame(animate);
-        updateGame();
-        updateParticles();
-        controls.update();
-        renderer.render(scene, camera);
-    }
+            // FIX: Added catch block for camera errors
+            qrScanner.start(
+                { facingMode: "environment" }, 
+                { 
+                    fps: 30, 
+                    qrbox: { width: qrBoxSize, height: qrBoxSize },
+                    aspectRatio: 1.0 
+                }, 
+                t => {
+                // FIX: Handle different scanner results
+                stopScanner();
+                try {
+                    let id = '';
+                    if(t.includes('#')) {
+                        id = t.split('#')[1];
+                    } else {
+                        id = t; // Assume raw ID if no hash
+                    }
+                    
+                    if (id && id.length > 0) {
+                        window.location.hash = id;
+                        window.location.reload();
+                    } else {
+                        alert("Invalid QR Code");
+                    }
+                } catch(e) {
+                    alert("Error parsing QR");
+                }
+            }).catch(err => {
+                console.error("Error starting scanner", err);
+                alert("Could not start camera. Please ensure you are on HTTPS and have granted permissions.");
+                document.getElementById('scanner-overlay').style.display = 'none';
+            });
+        }
 
-</script>
+        // FIX: Safe Stop Scanner Logic
+        function stopScanner() { 
+            if (qrScanner && qrScanner.isScanning) {
+                qrScanner.stop().then(() => { 
+                    qrScanner.clear(); 
+                    document.getElementById('scanner-overlay').style.display = 'none'; 
+                    qrScanner = null; // Reset instance
+                }).catch(err => {
+                    console.error("Failed to stop scanner", err);
+                    document.getElementById('scanner-overlay').style.display = 'none';
+                });
+            } else {
+                document.getElementById('scanner-overlay').style.display = 'none';
+            }
+        }
+    </script>
 </body>
 </html>
