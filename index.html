@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Solar System Physics Sandbox</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #000; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: white; }
+        #canvas-container { width: 100vw; height: 100vh; }
+        
+        /* UI Control Panel */
+        #controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 300px;
+            background: rgba(0, 0, 0, 0.85);
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #444;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 0 20px rgba(0, 150, 255, 0.2);
+            z-index: 10;
+        }
+
+        h2 { margin-top: 0; color: #4db8ff; font-size: 18px; text-transform: uppercase; letter-spacing: 1px; }
+        h3 { font-size: 14px; color: #ccc; border-bottom: 1px solid #444; padding-bottom: 5px; margin-top: 20px; }
+        
+        .control-group { margin-bottom: 15px; }
+        label { display: block; font-size: 12px; margin-bottom: 5px; color: #aaa; }
+        
+        input[type="range"] { width: 100%; cursor: pointer; }
+        select, button { 
+            width: 100%; 
+            padding: 8px; 
+            margin-bottom: 5px; 
+            background: #222; 
+            color: white; 
+            border: 1px solid #555; 
+            border-radius: 4px; 
+            cursor: pointer;
+        }
+        button:hover { background: #444; }
+        button.danger { background: #800; border-color: #a00; }
+        button.danger:hover { background: #a00; }
+        
+        /* Tooltip style feedback */
+        #feedback {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 0 0 10px red;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.5s;
+            z-index: 20;
+            text-align: center;
+        }
+
+        /* Instructions Overlay */
+        #instructions {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            color: rgba(255,255,255,0.5);
+            font-size: 12px;
+            pointer-events: none;
+            z-index: 5;
+        }
+        
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 20px;
+            color: #4db8ff;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+
+<div id="loading">Initializing Simulation...</div>
+<div id="canvas-container"></div>
+
+<div id="controls">
+    <h2>Control Room 🚀</h2>
+    
+    <h3>☀️ Sun Control (Suraj)</h3>
+    <div class="control-group">
+        <label>Sun Intensity (Roshni)</label>
+        <input type="range" id="sunIntensity" min="0" max="5" step="0.1" value="1.5">
+    </div>
+    <div class="control-group">
+        <label>Sun Mass (Gravity)</label>
+        <input type="range" id="sunMass" min="500" max="5000" step="100" value="1000">
+    </div>
+
+    <h3>🪐 Planet Manipulator</h3>
+    <div class="control-group">
+        <label>Select Planet</label>
+        <select id="planetSelector"></select>
+    </div>
+    <div class="control-group">
+        <label>Orbital Speed Boost (Dhakka)</label>
+        <div style="display: flex; gap: 5px;">
+            <button onclick="pushPlanet(1.1)">Speed Up (+10%)</button>
+            <button onclick="pushPlanet(0.9)">Slow Down (-10%)</button>
+        </div>
+    </div>
+    <div class="control-group">
+        <label>Change Mass</label>
+        <input type="range" id="planetMass" min="0.1" max="50" step="0.1" value="1">
+    </div>
+
+    <h3>🔄 Swap Situation</h3>
+    <div class="control-group">
+        <label>Swap Position of:</label>
+        <select id="swap1"></select>
+        <label>With:</label>
+        <select id="swap2"></select>
+        <button class="danger" onclick="swapPlanets()">SWAP POSITIONS!</button>
+    </div>
+
+    <button onclick="resetSystem()" style="margin-top: 20px; background: #2a2;">Reset Simulation</button>
+</div>
+
+<div id="instructions">
+    Left Click: Rotate | Right Click: Pan | Scroll: Zoom<br>
+    Click a planet to select it.
+</div>
+
+<div id="feedback"></div>
+
+<!-- Three.js Library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<!-- OrbitControls -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+<script>
+    // --- Configuration ---
+    const G = 0.5; // Gravitational Constant
+    const TIME_STEP = 0.5; // Simulation speed
+    
+    const initialData = [
+        { name: "Mercury", color: 0xA5A5A5, size: 0.8, dist: 30, mass: 1 },
+        { name: "Venus",   color: 0xE3BB76, size: 1.5, dist: 45, mass: 4 },
+        { name: "Earth",   color: 0x2233FF, size: 1.6, dist: 65, mass: 5 },
+        { name: "Mars",    color: 0xFF4400, size: 1.0, dist: 85, mass: 2 },
+        { name: "Jupiter", color: 0xD9A066, size: 4.5, dist: 130, mass: 80 },
+        { name: "Saturn",  color: 0xF4D03F, size: 3.8, dist: 170, mass: 60, ring: true },
+        { name: "Uranus",  color: 0x4FD0E7, size: 2.5, dist: 210, mass: 30 },
+        { name: "Neptune", color: 0x3344FF, size: 2.4, dist: 250, mass: 35 }
+    ];
+
+    let scene, camera, renderer, controls;
+    let sun, sunLight, sunLightAmbient;
+    let bodies = []; 
+    let animationId;
+
+    // Use window.onload to ensure DOM is ready
+    window.onload = function() {
+        try {
+            init();
+            document.getElementById('loading').style.display = 'none';
+        } catch (e) {
+            console.error(e);
+            document.getElementById('loading').innerText = "Error loading simulation. Check console.";
+        }
+    };
+
+    function init() {
+        // Scene Setup
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x050505);
+        
+        // Camera
+        camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 3000);
+        camera.position.set(0, 150, 300);
+
+        // Renderer
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+        // Controls
+        if (typeof THREE.OrbitControls !== 'undefined') {
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+        } else {
+            console.warn("OrbitControls not loaded properly");
+        }
+
+        createStars();
+        createSystem();
+        populateUI();
+
+        window.addEventListener('resize', onWindowResize, false);
+        renderer.domElement.addEventListener('pointerdown', onDocumentMouseDown, false);
+
+        animate();
+    }
+
+    function createStars() {
+        const starGeo = new THREE.BufferGeometry();
+        const starCount = 6000;
+        const posArray = new Float32Array(starCount * 3);
+        
+        for(let i=0; i<starCount * 3; i++) {
+            posArray[i] = (Math.random() - 0.5) * 2000;
+        }
+        
+        starGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+        const starMat = new THREE.PointsMaterial({color: 0xffffff, size: 0.8, transparent: true, opacity: 0.8});
+        const stars = new THREE.Points(starGeo, starMat);
+        scene.add(stars);
+    }
+
+    function createSystem() {
+        // Clear existing
+        if (sun) scene.remove(sun);
+        bodies.forEach(b => {
+            scene.remove(b.mesh);
+            scene.remove(b.trail);
+            if(b.ringMesh) scene.remove(b.ringMesh);
+        });
+        bodies = [];
+
+        // Sun
+        const sunGeo = new THREE.SphereGeometry(10, 32, 32);
+        const sunMat = new THREE.MeshBasicMaterial({ color: 0xFFDD00 });
+        sun = new THREE.Mesh(sunGeo, sunMat);
+        scene.add(sun);
+
+        const sunBody = {
+            name: "Sun",
+            mass: 1000,
+            mesh: sun,
+            pos: new THREE.Vector3(0, 0, 0),
+            vel: new THREE.Vector3(0, 0, 0)
+        };
+        bodies.push(sunBody);
+
+        // Lights
+        if(sunLight) scene.remove(sunLight);
+        if(sunLightAmbient) scene.remove(sunLightAmbient);
+
+        sunLight = new THREE.PointLight(0xffffff, 1.5, 1500);
+        sunLight.position.set(0, 0, 0);
+        scene.add(sunLight);
+        
+        sunLightAmbient = new THREE.AmbientLight(0x404040, 0.5);
+        scene.add(sunLightAmbient);
+
+        // Planets
+        initialData.forEach(data => {
+            createPlanet(data, sunBody);
+        });
+    }
+
+    function createPlanet(data, sunBody) {
+        const geo = new THREE.SphereGeometry(data.size, 32, 32);
+        const mat = new THREE.MeshStandardMaterial({ 
+            color: data.color, 
+            roughness: 0.8,
+            metalness: 0.2
+        });
+        const mesh = new THREE.Mesh(geo, mat);
+        
+        const angle = Math.random() * Math.PI * 2;
+        const startX = Math.cos(angle) * data.dist;
+        const startZ = Math.sin(angle) * data.dist;
+        mesh.position.set(startX, 0, startZ);
+        scene.add(mesh);
+
+        let ringMesh = null;
+        if (data.ring) {
+            const ringGeo = new THREE.RingGeometry(data.size + 1, data.size + 4, 32);
+            const ringMat = new THREE.MeshBasicMaterial({ 
+                color: 0xDDDDDD, 
+                side: THREE.DoubleSide, 
+                transparent: true, 
+                opacity: 0.5 
+            });
+            ringMesh = new THREE.Mesh(ringGeo, ringMat);
+            ringMesh.rotation.x = Math.PI / 2;
+            scene.add(ringMesh);
+        }
+
+        const dist = Math.sqrt(startX*startX + startZ*startZ);
+        const speed = Math.sqrt((G * sunBody.mass) / dist);
+        const velX = Math.sin(angle) * speed;
+        const velZ = -Math.cos(angle) * speed;
+
+        // Better Trail Initialization
+        const trailGeo = new THREE.BufferGeometry();
+        const trailPositions = new Float32Array(300); 
+        // Fill trail with starting position to avoid (0,0,0) streak
+        for(let i=0; i<300; i+=3) {
+            trailPositions[i] = startX;
+            trailPositions[i+1] = 0;
+            trailPositions[i+2] = startZ;
+        }
+        trailGeo.setAttribute('position', new THREE.BufferAttribute(trailPositions, 3));
+        const trailMat = new THREE.LineBasicMaterial({ color: data.color, opacity: 0.4, transparent: true });
+        const trail = new THREE.Line(trailGeo, trailMat);
+        scene.add(trail);
+
+        bodies.push({
+            name: data.name,
+            mass: data.mass,
+            mesh: mesh,
+            ringMesh: ringMesh,
+            trail: trail,
+            pos: new THREE.Vector3(startX, 0, startZ),
+            vel: new THREE.Vector3(velX, 0, velZ)
+        });
+    }
+
+    function updatePhysics() {
+        for (let i = 0; i < bodies.length; i++) {
+            for (let j = i + 1; j < bodies.length; j++) {
+                const b1 = bodies[i];
+                const b2 = bodies[j];
+
+                const dx = b2.pos.x - b1.pos.x;
+                const dy = b2.pos.y - b1.pos.y;
+                const dz = b2.pos.z - b1.pos.z;
+                
+                const distSq = dx*dx + dy*dy + dz*dz;
+                const dist = Math.sqrt(distSq);
+
+                if (dist < 1) continue; 
+
+                const force = (G * b1.mass * b2.mass) / distSq;
+                
+                const fx = (dx / dist) * force;
+                const fy = (dy / dist) * force;
+                const fz = (dz / dist) * force;
+
+                b1.vel.x += (fx / b1.mass) * TIME_STEP;
+                b1.vel.y += (fy / b1.mass) * TIME_STEP;
+                b1.vel.z += (fz / b1.mass) * TIME_STEP;
+
+                b2.vel.x -= (fx / b2.mass) * TIME_STEP;
+                b2.vel.y -= (fy / b2.mass) * TIME_STEP;
+                b2.vel.z -= (fz / b2.mass) * TIME_STEP;
+            }
+        }
+
+        bodies.forEach(b => {
+            b.pos.x += b.vel.x * TIME_STEP;
+            b.pos.y += b.vel.y * TIME_STEP;
+            b.pos.z += b.vel.z * TIME_STEP;
+
+            b.mesh.position.copy(b.pos);
+            if (b.ringMesh) b.ringMesh.position.copy(b.pos);
+
+            // Update Trail
+            if (b.trail) {
+                const positions = b.trail.geometry.attributes.position.array;
+                // Shift array
+                for (let i = positions.length - 1; i >= 3; i--) {
+                    positions[i] = positions[i - 3];
+                }
+                positions[0] = b.pos.x;
+                positions[1] = b.pos.y;
+                positions[2] = b.pos.z;
+                b.trail.geometry.attributes.position.needsUpdate = true;
+            }
+        });
+    }
+
+    function showFeedback(text) {
+        const el = document.getElementById('feedback');
+        el.innerText = text;
+        el.style.opacity = 1;
+        setTimeout(() => el.style.opacity = 0, 1500);
+    }
+
+    // Input Listeners
+    document.getElementById('sunIntensity').addEventListener('input', (e) => {
+        if(sunLight) sunLight.intensity = parseFloat(e.target.value);
+    });
+
+    document.getElementById('sunMass').addEventListener('input', (e) => {
+        if(bodies.length > 0) {
+            bodies[0].mass = parseFloat(e.target.value);
+            showFeedback(`Sun Mass: ${bodies[0].mass}`);
+        }
+    });
+
+    document.getElementById('planetMass').addEventListener('input', (e) => {
+        const pName = document.getElementById('planetSelector').value;
+        const planet = bodies.find(b => b.name === pName);
+        if (planet) {
+            planet.mass = parseFloat(e.target.value);
+        }
+    });
+
+    // Make functions global for HTML buttons
+    window.pushPlanet = function(multiplier) {
+        const pName = document.getElementById('planetSelector').value;
+        const planet = bodies.find(b => b.name === pName);
+        if (planet && planet.name !== "Sun") {
+            planet.vel.multiplyScalar(multiplier);
+            showFeedback(`${planet.name} Speed x${multiplier}`);
+        }
+    };
+
+    window.swapPlanets = function() {
+        const n1 = document.getElementById('swap1').value;
+        const n2 = document.getElementById('swap2').value;
+
+        if (n1 === n2) return;
+
+        const b1 = bodies.find(b => b.name === n1);
+        const b2 = bodies.find(b => b.name === n2);
+
+        if (b1 && b2) {
+            const tempPos = b1.pos.clone();
+            b1.pos.copy(b2.pos);
+            b2.pos.copy(tempPos);
+
+            const tempVel = b1.vel.clone();
+            b1.vel.copy(b2.vel);
+            b2.vel.copy(tempVel);
+
+            // Clear trails
+            [b1, b2].forEach(b => {
+                 const positions = b.trail.geometry.attributes.position.array;
+                 for(let i=0; i<positions.length; i+=3) {
+                     positions[i] = b.pos.x;
+                     positions[i+1] = b.pos.y;
+                     positions[i+2] = b.pos.z;
+                 }
+                 b.trail.geometry.attributes.position.needsUpdate = true;
+            });
+
+            showFeedback(`Swapped ${n1} & ${n2}!`);
+        }
+    };
+
+    window.resetSystem = function() {
+        createSystem();
+        populateUI();
+        document.getElementById('sunMass').value = 1000;
+        showFeedback("System Reset");
+    };
+
+    function populateUI() {
+        const planetSel = document.getElementById('planetSelector');
+        const swap1 = document.getElementById('swap1');
+        const swap2 = document.getElementById('swap2');
+        
+        planetSel.innerHTML = "";
+        swap1.innerHTML = "";
+        swap2.innerHTML = "";
+
+        bodies.forEach(b => {
+            if (b.name === "Sun") return;
+            const opt = document.createElement('option');
+            opt.value = b.name;
+            opt.innerText = b.name;
+            planetSel.appendChild(opt.cloneNode(true));
+            swap1.appendChild(opt.cloneNode(true));
+            swap2.appendChild(opt.cloneNode(true));
+        });
+
+        planetSel.addEventListener('change', () => {
+            const planet = bodies.find(b => b.name === planetSel.value);
+            if(planet) document.getElementById('planetMass').value = planet.mass;
+        });
+    }
+
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+
+    function onDocumentMouseDown(event) {
+        event.preventDefault();
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        raycaster.setFromCamera(mouse, camera);
+        
+        const intersects = raycaster.intersectObjects(scene.children);
+        if (intersects.length > 0) {
+            const obj = intersects[0].object;
+            const body = bodies.find(b => b.mesh === obj);
+            if (body && body.name !== "Sun") {
+                document.getElementById('planetSelector').value = body.name;
+                document.getElementById('planetMass').value = body.mass;
+                showFeedback(`Selected: ${body.name}`);
+            }
+        }
+    }
+
+    function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    function animate() {
+        requestAnimationFrame(animate);
+        updatePhysics();
+        if(controls) controls.update();
+        renderer.render(scene, camera);
+    }
+
+</script>
+</body>
+</html>
