@@ -623,6 +623,16 @@
             display: flex; flex-direction: column;
         }
 
+        /* FEATURE 3: Canvas for Live Drawing */
+        #draw-canvas {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 10;
+            touch-action: none;
+            pointer-events: auto; /* Allows drawing */
+        }
+
         #remote-video { width: 100%; height: 100%; object-fit: contain; background: black; }
         #local-video {
             position: absolute; bottom: 100px; right: 20px;
@@ -630,6 +640,7 @@
             background: #333;
             border-radius: 10px; border: 2px solid white;
             object-fit: cover;
+            z-index: 5;
         }
 
         .call-controls-bar {
@@ -639,6 +650,7 @@
             padding: 15px 30px;
             border-radius: 30px;
             display: flex; gap: 20px;
+            z-index: 20;
         }
 
         .control-btn {
@@ -782,7 +794,6 @@
                     <button class="mobile-only btn-close-sidebar" onclick="toggleSidebar()">←</button>
                     <h2>QR Send</h2>
                 </div>
-                <!-- FEATURE 3: Dark Mode Toggle in Sidebar -->
                 <div style="display:flex; align-items:center;">
                     <button class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle Dark Mode">🌓</button>
                     <span id="status-badge" class="status-badge">Disconnected</span>
@@ -828,7 +839,6 @@
                 </div>
                 
                 <div class="chat-actions">
-                    <!-- FEATURE 1: Screen Sharing Button -->
                     <button class="icon-btn" onclick="initScreenShare()" title="Share Screen (Desktop)">
                         <svg viewBox="0 0 24 24">
                             <path d="M20,3H4C2.897,3,2,3.897,2,5v11c0,1.103,0.897,2,2,2h4l-1.8,2.4l1.6,1.2l2.5-3.333h5.4l2.5,3.333l1.6-1.2L18,18h4 c1.103,0,2-0.897,2-2V5C24,3.897,23.103,3,22,3z M22,16H4V5h18V16z"></path>
@@ -860,9 +870,13 @@
             </div>
 
             <div class="input-area">
+                <!-- FEATURE 1: Universal Clipboard Button -->
+                <button class="icon-btn" onclick="sendClipboard()" title="Send Clipboard (Copy from this device to Peer)">
+                    📋
+                </button>
+
                 <button class="icon-btn" onclick="document.getElementById('img-input').click()">📷</button>
 
-                <!-- FEATURE 2: Voice Note Recording UI -->
                 <div id="recording-box" class="recording-box">
                     <span class="mic-active">🔴</span> Recording...
                     <button class="icon-btn" style="color:var(--red); border:1px solid var(--red);" onclick="stopRecording(false)">🗑️</button>
@@ -871,7 +885,6 @@
                 <input type="file" id="img-input" accept="image/*" style="display:none">
                 <input type="text" id="msg-input" placeholder="Type a message...">
                 
-                <!-- FEATURE 2: Voice Note Mic Button -->
                 <button class="icon-btn" id="mic-btn" onmousedown="startRecording()" onmouseup="stopRecording(true)" ontouchstart="startRecording()" ontouchend="stopRecording(true)" title="Hold to Record">
                     <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
                 </button>
@@ -921,12 +934,20 @@
 
     <div class="fullscreen-overlay" id="active-call-ui">
         <div class="active-call-ui">
+            <!-- FEATURE 3: Drawing Canvas Overlay -->
+            <canvas id="draw-canvas"></canvas>
+
             <video id="remote-video" autoplay playsinline></video>
             <video id="local-video" autoplay playsinline muted></video>
             <div class="call-controls-bar">
                 <button class="control-btn" id="btn-mute" onclick="toggleMic()">🎤</button>
                 <button class="control-btn btn-hangup" onclick="endCall()">📞</button>
                 <button class="control-btn" id="btn-cam" onclick="toggleCam()">📷</button>
+                
+                <!-- FEATURE 2: Remote Flashlight Button -->
+                <button class="control-btn" id="btn-flash" onclick="toggleRemoteFlash()" title="Toggle Peer's Flashlight">
+                    🔦
+                </button>
             </div>
         </div>
     </div>
@@ -951,10 +972,12 @@
         let callMode = 'ring'; // ring, vibrate, silent
         let vibrateInterval;
 
-        // FEATURE 2 VARS: Voice Notes
+        // FEATURE VARS
         let mediaRecorder;
         let audioChunks = [];
         let isRecording = false;
+        let flashEnabled = false;
+        let canvas, ctx;
 
         document.addEventListener('DOMContentLoaded', () => {
             // Check if mobile to show/hide elements
@@ -963,7 +986,7 @@
                 if (hiddenEl) hiddenEl.style.display = 'none';
             }
 
-            // Init Dark Mode from LocalStorage
+            // Init Dark Mode
             if(localStorage.getItem('theme') === 'dark') {
                 document.body.classList.add('dark-mode');
             }
@@ -972,12 +995,10 @@
                 if (!isHost) { history.replaceState(null, null, window.location.pathname); }
             });
             initApp();
+            initCanvas(); // Init drawing canvas
 
             const msgInput = document.getElementById('msg-input');
-
-            // Typing Listener
             msgInput.addEventListener('input', () => {
-                // If text is present, hide Mic button, show Send only logic could be added here
                 if (conn && conn.open) {
                     conn.send({ type: 'typing', isTyping: true });
                     clearTimeout(typingTimeout);
@@ -1006,7 +1027,90 @@
             });
         });
 
-        // FEATURE 3: Dark Mode Logic
+        // --- FEATURE 3: LIVE DRAWING LOGIC ---
+        function initCanvas() {
+            canvas = document.getElementById('draw-canvas');
+            ctx = canvas.getContext('2d');
+            
+            // Resize canvas to match window
+            const resize = () => {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            };
+            window.addEventListener('resize', resize);
+            resize();
+
+            let isDrawing = false;
+
+            // Mouse/Touch Events
+            const startDraw = (e) => { isDrawing = true; sendDrawData(e, 'start'); };
+            const moveDraw = (e) => { if(isDrawing) { drawOnCanvas(getCoords(e), '#ff0000', true); sendDrawData(e, 'move'); } };
+            const endDraw = () => { isDrawing = false; };
+
+            canvas.addEventListener('mousedown', startDraw);
+            canvas.addEventListener('mousemove', moveDraw);
+            canvas.addEventListener('mouseup', endDraw);
+            
+            canvas.addEventListener('touchstart', (e) => { startDraw(e.touches[0]); });
+            canvas.addEventListener('touchmove', (e) => { e.preventDefault(); moveDraw(e.touches[0]); });
+            canvas.addEventListener('touchend', endDraw);
+        }
+
+        function getCoords(e) {
+            const rect = canvas.getBoundingClientRect();
+            // Normalize coordinates (0.0 to 1.0) for different screen sizes
+            return {
+                x: (e.clientX - rect.left) / canvas.width,
+                y: (e.clientY - rect.top) / canvas.height
+            };
+        }
+
+        function sendDrawData(e, action) {
+            if(conn && conn.open) {
+                conn.send({ type: 'draw', action: action, coords: getCoords(e) });
+            }
+        }
+
+        function drawOnCanvas(coords, color, isLocal) {
+            const x = coords.x * canvas.width;
+            const y = coords.y * canvas.height;
+            
+            ctx.beginPath();
+            ctx.arc(x, y, 10, 0, 2 * Math.PI, false);
+            ctx.fillStyle = color;
+            ctx.fill();
+
+            // Fade out effect
+            setTimeout(() => {
+                ctx.globalCompositeOperation = "destination-out";
+                ctx.beginPath();
+                ctx.arc(x, y, 11, 0, 2 * Math.PI, false);
+                ctx.fill();
+                ctx.globalCompositeOperation = "source-over";
+            }, 2000);
+        }
+        // --------------------------------------
+
+        // --- FEATURE 1: UNIVERSAL CLIPBOARD ---
+        async function sendClipboard() {
+            try {
+                const text = await navigator.clipboard.readText();
+                if(text) {
+                    if(conn && conn.open) {
+                        conn.send({ type: 'clipboard', content: text });
+                        alert("Clipboard sent!");
+                    } else {
+                        alert("Not connected!");
+                    }
+                } else {
+                    alert("Clipboard is empty or blocked.");
+                }
+            } catch(e) {
+                alert("Permission denied or clipboard empty. Click anywhere on page first.");
+            }
+        }
+        // --------------------------------------
+
         function toggleTheme() {
             document.body.classList.toggle('dark-mode');
             localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
@@ -1082,7 +1186,6 @@
             });
             peer.on('connection', (c) => setupConnection(c));
             peer.on('call', (call) => {
-                // Check if screen share or video
                 const isScreen = call.metadata && call.metadata.type === 'screen';
                 document.getElementById('incoming-call-ui').style.display = 'flex';
                 document.getElementById('incoming-call-type').innerText = isScreen ? 'Incoming Screen Share...' : (call.metadata?.type === 'video' ? 'Incoming Video Call...' : 'Incoming Voice Call...');
@@ -1123,7 +1226,6 @@
             switch (data.type) {
                 case 'text': addMessage(data.content, 'received', data.reply); conn.send({ type: 'ack', id: data.id }); break;
                 case 'image': addImage(data.content, 'received', data.id); conn.send({ type: 'ack', id: data.id }); break;
-                // FEATURE 2: Handle Audio Data
                 case 'audio': addAudioMsg(data.content, 'received', data.id); conn.send({ type: 'ack', id: data.id }); break;
                 case 'typing':
                     const ind = document.getElementById('typing-indicator');
@@ -1136,6 +1238,22 @@
                 case 'file-cancel': handleFileCancel(data.fileId); break;
                 case 'call-rejected': alert('Call Rejected'); endCallUI(); break;
                 case 'call-end': endCallUI(); break;
+                
+                // NEW FEATURE HANDLERS
+                case 'clipboard':
+                    // Auto Copy if possible, else Prompt
+                    navigator.clipboard.writeText(data.content).then(() => {
+                        alert("📋 Copied from Peer: " + data.content);
+                    }).catch(err => {
+                        prompt("📋 Peer sent clipboard data (Copy manually):", data.content);
+                    });
+                    break;
+                case 'toggle-flash':
+                    applyFlashlight();
+                    break;
+                case 'draw':
+                    drawOnCanvas(data.coords, '#00ff00', false); // Green for remote
+                    break;
             }
         }
 
@@ -1169,7 +1287,6 @@
             input.focus();
         }
 
-        // FEATURE 2: Voice Recording Functions
         async function startRecording() {
             if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return alert("Microphone not supported");
             
@@ -1200,12 +1317,10 @@
             mediaRecorder.addEventListener("stop", () => {
                 document.getElementById('msg-input').style.display = 'block';
                 document.getElementById('recording-box').style.display = 'none';
-
-                // Stop all tracks to release mic
                 mediaRecorder.stream.getTracks().forEach(track => track.stop());
 
                 if (shouldSend) {
-                    const audioBlob = new Blob(audioChunks, { type: 'audio/mp3' }); // or webm
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/mp3' });
                     const reader = new FileReader();
                     reader.onload = () => {
                         const base64Audio = reader.result;
@@ -1253,7 +1368,6 @@
             scrollToBottom();
         }
 
-        // File Transfer Logic (Same as before)
         document.getElementById('file-input').onchange = function () {
             for (let f of this.files) {
                 const id = Date.now() + Math.random().toString(36).substr(2, 5);
@@ -1377,7 +1491,25 @@
             });
         }
 
-        // FEATURE 1: Screen Sharing Logic
+        // FEATURE 2: REMOTE FLASHLIGHT LOGIC
+        function toggleRemoteFlash() {
+            if(conn && conn.open) {
+                conn.send({ type: 'toggle-flash' });
+            }
+        }
+
+        function applyFlashlight() {
+            if(localStream) {
+                const track = localStream.getVideoTracks()[0];
+                if(track) {
+                    flashEnabled = !flashEnabled;
+                    track.applyConstraints({
+                        advanced: [{ torch: flashEnabled }]
+                    }).catch(err => console.log("Flashlight not supported on this device/camera", err));
+                }
+            }
+        }
+
         function initScreenShare() {
              if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
                 alert("Screen sharing is not supported on this device/browser (usually works best on Desktop Chrome/Edge).");
@@ -1388,13 +1520,11 @@
             .then(stream => {
                 localStream = stream;
                 document.getElementById('active-call-ui').style.display = 'flex';
-                // Local video might show weird recursion if we show screen share to self, but generally okay
                 document.getElementById('local-video').srcObject = stream;
                 
                 const call = peer.call(conn.peer, stream, { metadata: { type: 'screen' } });
                 handleCall(call);
 
-                // Stop sharing when user clicks "Stop Sharing" in browser UI
                 stream.getVideoTracks()[0].onended = function () {
                     endCall();
                 };
@@ -1417,15 +1547,7 @@
         function answerCall() {
             stopCallAlert();
             document.getElementById('incoming-call-ui').style.display = 'none';
-            // Determine if incoming call is screen/video or audio-only to decide what permissions we need
-            // Usually if someone shares screen, we answer with just audio or nothing? 
-            // For simplicity, we answer with Audio/Video based on what they sent, or just Audio if it's a screen share
-            
             const isVideoCall = window.pendingCall.metadata.type === 'video';
-            const isScreenShare = window.pendingCall.metadata.type === 'screen';
-            
-            // If incoming is screen share, we probably just want to answer with Audio (or nothing) to watch
-            // Let's answer with Audio only for Screen Share reception to talk back
             const constraints = (isVideoCall) ? mediaConstraints : { audio: true, video: false };
 
             navigator.mediaDevices.getUserMedia(constraints).then(s => {
@@ -1436,7 +1558,6 @@
                 handleCall(window.pendingCall);
             }).catch(e => {
                 console.error("Error answering", e);
-                // Try answering with no stream if mic fails? PeerJS requires stream usually.
             });
         }
 
@@ -1462,6 +1583,9 @@
             }
             activeCall = null;
             window.pendingCall = null;
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
         }
 
         function toggleMic() { const t = localStream.getAudioTracks()[0]; t.enabled = !t.enabled; document.getElementById('btn-mute').classList.toggle('off'); }
